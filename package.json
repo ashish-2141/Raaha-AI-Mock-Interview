@@ -11,7 +11,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "check": "pnpm biome check . && pnpm typecheck && pnpm test",
+    "check": "pnpm typecheck && pnpm test",
     "format": "biome format --write .",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit",

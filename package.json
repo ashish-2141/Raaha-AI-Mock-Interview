@@ -1,11 +1,11 @@
 {
   "name":"raaha-ai-mock-interview",
-  "version":"0.2.0",
+  "version":"0.3.0",
   "private":true,
   "type":"module",
   "packageManager":"pnpm@12.8.0",
   "engines":{"node":">=24.0.0 <27"},
   "scripts":{"dev":"next dev","build":"next build","start":"next start","check":"pnpm biome check . && pnpm typecheck && pnpm test","format":"biome format --write .","lint":"biome check .","typecheck":"tsc --noEmit","test":"vitest run","test:watch":"vitest","test:e2e":"playwright test"},
-  "dependencies":{"@prisma/client":"^8.0.0","next":"16.3.8","react":"19.3.0","react-dom":"19.3.0","zod":"^4.1.0"},
+  "dependencies":{"@prisma/client":"^8.0.0","@supabase/ssr":"0.12.7","@supabase/supabase-js":"2.117.2","next":"16.3.8","openai":"7.17.0","react":"19.3.0","react-dom":"19.3.0","unpdf":"1.8.1","zod":"^4.1.0"},
   "devDependencies":{"@biomejs/biome":"^2.5.0","@playwright/test":"^1.57.0","@types/node":"^24.0.0","@types/react":"^19.0.0","@types/react-dom":"^19.0.0","prisma":"^8.0.0","tailwindcss":"^4.3.0","typescript":"^7.0.0","vitest":"^5.0.0"}
 }

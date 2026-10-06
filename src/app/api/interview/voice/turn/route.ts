@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { advanceInterview } from "@/lib/interview/graph";
-import { loadInterviewState, saveInterviewState } from "@/lib/interview/redis";
 import { buildLocalFallbackReply } from "@/lib/voice/protocol";
+import { loadVoiceSession, saveVoiceSession } from "@/lib/voice/session";
 import { VoiceTurnInputSchema } from "@/lib/voice/types";
 
 export const runtime = "nodejs";
@@ -19,18 +19,21 @@ export async function POST(request: Request) {
 
   try {
     const input = VoiceTurnInputSchema.parse(await request.json());
-    const state = await loadInterviewState(input.interviewId);
+    const session = await loadVoiceSession(data.user.id, input.interviewId);
 
-    if (!state) {
+    if (!session) {
       return NextResponse.json({ error: "Interview session not found." }, { status: 404 });
+    }
+    if (session.unauthorized) {
+      return NextResponse.json({ error: "Interview session is not owned by this account." }, { status: 403 });
     }
 
     const nextState = await advanceInterview({
-      ...state,
+      ...session.state,
       lastAnswer: input.transcript,
     });
 
-    await saveInterviewState(input.interviewId, nextState);
+    await saveVoiceSession(data.user.id, input.interviewId, nextState);
 
     return NextResponse.json({
       interviewId: input.interviewId,
@@ -44,7 +47,8 @@ export async function POST(request: Request) {
       userId: data.user.id,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Voice turn failed.";
+    const fallback = buildLocalFallbackReply("voice interview", "general");
+    const message = error instanceof Error ? error.message : fallback.nextQuestion;
     return NextResponse.json({ error: message }, { status: 422 });
   }
 }

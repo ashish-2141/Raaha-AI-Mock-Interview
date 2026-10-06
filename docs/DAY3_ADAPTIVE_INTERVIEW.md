@@ -12,7 +12,7 @@
 - Anti-repetition by filtering questions already asked.
 - Redis 24-hour state storage utility using node-redis.
 
-LangGraph provides stateful graph execution and conditional workflow building, which fits the conversation-state requirements for this feature. The current npm release is 1.4.18. Redis documents node-redis as the recommended Node.js client and supports Redis 8.0.z. citeturn824823search0turn824823search1
+LangGraph provides stateful graph execution and conditional workflow building, which fits the conversation-state requirements for this feature. The current npm release is 1.4.18. Redis documents node-redis as the recommended Node.js client and supports Redis 8.0.z.
 
 ## Acceptance evidence
 

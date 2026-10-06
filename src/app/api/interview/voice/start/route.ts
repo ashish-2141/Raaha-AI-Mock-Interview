@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { saveInterviewState } from "@/lib/interview/redis";
 import { VoiceStartInputSchema } from "@/lib/voice/types";
 import { createInitialVoiceTurn } from "@/lib/voice/protocol";
+import { saveVoiceSession } from "@/lib/voice/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const input = VoiceStartInputSchema.parse(await request.json());
     const state = await createInitialVoiceTurn(input);
 
-    await saveInterviewState(input.interviewId, state);
+    await saveVoiceSession(data.user.id, input.interviewId, state);
 
     return NextResponse.json({
       interviewId: input.interviewId,

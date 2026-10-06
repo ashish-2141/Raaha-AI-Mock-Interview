@@ -8,7 +8,9 @@
 | AI | OpenAI SDK 7.17 + Responses API | Structured resume extraction |
 | PDF | unpdf 1.8.1 | Server-side text extraction |
 | Validation | Zod 4 | Schema validation at trust boundaries |
-| Database | PostgreSQL 18 + Prisma 8 | Persistence layer prepared for later profile storage |
-| Cache | Redis 8.x | Reserved for interview/session state |
+| Database | PostgreSQL 18 + Prisma 7.10.0 | Persistence layer prepared for later profile storage |
+| Cache | Redis-compatible server + node-redis 6.3.0 | Interview/session state |
 | Tests | Vitest 5 + Playwright 1.57 | Unit and browser smoke coverage |
 | Quality | Biome 2.5 + GitHub Actions | Formatting, linting and CI |
+
+The Day 4 voice slice keeps speech input/output at the browser boundary and the adaptive interview state in the backend.

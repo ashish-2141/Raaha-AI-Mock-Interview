@@ -1,7 +1,7 @@
 import { StateGraph, StateSchema, START, END } from "@langchain/langgraph";
 import { z } from "zod";
 import { evaluateAnswer } from "./evaluate";
-import { selectNextQuestion } from "./questions";
+import { buildQuestionHistory, selectNextQuestion } from "./questions";
 
 export const InterviewState = new StateSchema({
   interviewId: z.uuid(),
@@ -43,15 +43,17 @@ const evaluateNode = (state: typeof InterviewState.State) => {
 };
 
 const questionNode = (state: typeof InterviewState.State) => ({
-  nextQuestion: selectNextQuestion({
-    branch: state.branch,
-    role: state.role,
-    difficulty: state.difficultyScore,
-    questionHistory: state.questionHistory,
-    evaluatedConcepts: state.evaluatedConcepts,
-    resumeProjects: state.resumeProjects,
-    followUp: state.followUp,
-  }),
+  nextQuestion: !state.lastAnswer.trim() && state.turnNumber === 0
+    ? buildQuestionHistory(state.resumeProjects, state.role, state.branch)[0]
+    : selectNextQuestion({
+      branch: state.branch,
+      role: state.role,
+      difficulty: state.difficultyScore,
+      questionHistory: state.questionHistory,
+      evaluatedConcepts: state.evaluatedConcepts,
+      resumeProjects: state.resumeProjects,
+      followUp: state.followUp,
+    }),
   turnNumber: state.turnNumber + (state.lastAnswer.trim() ? 1 : 0),
 });
 

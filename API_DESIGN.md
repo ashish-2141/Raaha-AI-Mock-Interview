@@ -1,32 +1,27 @@
-# API Design, Day 1
+# API Design, Day 2
 
-## Health
+## Authentication
 
-GET /api/health
+Supabase Auth provides email/password authentication. Browser sessions use @supabase/ssr and the Next.js proxy refreshes auth cookies.
 
-Returns a small JSON payload for uptime checks and deployment verification.
+## POST /api/resumes/parse
 
-## Planned domain APIs
+Authentication: required.
+Content type: multipart/form-data.
+Field: file, PDF only.
 
-POST /api/interviews
-Creates an interview session after candidate identity and role validation.
+Validation limits:
+- 5 MB maximum file size.
+- 10 pages maximum.
+- 50,000 extracted characters maximum sent to the model.
 
-POST /api/interviews/:id/turns
-Accepts an answer, evaluates the turn, stores evidence, and returns the next question plus updated difficulty.
+Processing:
+1. Resolve the authenticated Supabase user.
+2. Read the multipart file.
+3. Validate MIME type, size and page count.
+4. Extract text with unpdf.
+5. Send text to the OpenAI Responses API with a Zod-backed structured-output schema.
+6. Validate the parsed result again with ResumeProfileSchema.
+7. Return the validated profile.
 
-POST /api/resumes/parse
-Accepts a resume document, extracts text, validates a structured profile, and stores only validated fields.
-
-POST /api/code/execute
-Queues code execution to the isolated sandbox. The web tier never executes candidate code directly.
-
-GET /api/interviews/:id/report
-Returns evidence-backed scoring and the interview summary.
-
-## API rules
-
-- Validate request bodies with Zod.
-- Use typed domain objects instead of provider response types.
-- Return stable error codes.
-- Keep request identifiers and interview identifiers in logs.
-- Apply authentication and rate limits before production exposure.
+The route does not persist the raw PDF or unvalidated model output.

@@ -1,6 +1,6 @@
 # Raaha AI Mock Interview
 
-Day 2 implementation for authenticated sign-in and structured resume parsing.
+Day 3 implementation adds an adaptive interview engine on top of the Day 2 authentication and resume parsing foundation.
 
 ## Stack
 
@@ -9,46 +9,42 @@ Day 2 implementation for authenticated sign-in and structured resume parsing.
 - TypeScript 7
 - Node.js 24 LTS
 - pnpm 12.8
-- Supabase Auth with @supabase/ssr 0.12.7
+- Supabase Auth
 - PostgreSQL 18 + Prisma 8
-- Redis 8.x
-- OpenAI SDK 7.17 with Responses API structured parsing
+- Redis 8.x + node-redis 6.3
+- LangGraph.js 1.4.18
+- OpenAI Responses API
 - Zod 4
-- unpdf 1.8.1
-- Biome 2.5
 - Vitest 5
 - Playwright 1.57
+- Biome 2.5
 - GitHub Actions
 
-## Day 2 implementation
+## Day 3 feature
 
-1. Email/password authentication with Supabase SSR and cookie-aware session refresh.
-2. Protected PDF resume upload route.
-3. PDF text extraction with unpdf.
-4. Resume profile extraction with OpenAI structured output.
-5. Zod validation for branch, CGPA, skills and projects.
-6. Size/page limits for uploaded resumes.
-7. Login and resume parser UI.
-8. Auth callback route.
-9. Unit tests, negative validation test and Playwright smoke coverage.
+The engine runs an explicit evaluate -> question graph.
 
-## Security baseline
+It uses:
+- Resume project context
+- Role and branch context
+- Last 3 turns verbatim
+- Older-turn compression
+- Anti-repetition
+- Follow-up probing for vague answers
+- Difficulty adjustment from 1-5
+- Redis persistence utility for interview state
 
-- Resume text is wrapped in explicit delimiters and treated as untrusted data.
-- AI output is rejected unless it passes the Zod schema.
-- No raw resume persistence is performed by the Day 2 API.
-- PDF input is limited to 5 MB and 10 pages.
-- Secrets stay in environment variables.
-- Candidate code execution remains isolated from the web process and is scheduled for later work.
+## Test coverage
 
-## Run
+- Resume-grounded opening question
+- Vague answer -> follow-up
+- Strong answer -> higher difficulty
+
+Run:
 
 ```bash
 pnpm install
-pnpm dev
 pnpm check
-pnpm test:e2e
-pnpm build
 ```
 
-Required environment variables are documented in .env.example.
+The real-model adapter remains provider-configurable. Keep API keys in environment variables.

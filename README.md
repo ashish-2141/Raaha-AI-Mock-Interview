@@ -1,50 +1,34 @@
 # Raaha AI Mock Interview
 
-Day 3 implementation adds an adaptive interview engine on top of the Day 2 authentication and resume parsing foundation.
+Day 4 extends the Day 3 adaptive interview engine with a real-time voice interview slice.
 
-## Stack
-
-- Next.js 16.3.8
-- React 19.3
-- TypeScript 7
-- Node.js 24 LTS
-- pnpm 12.8
-- Supabase Auth
-- PostgreSQL 18 + Prisma 8
-- Redis 8.x + node-redis 6.3
-- LangGraph.js 1.4.18
-- OpenAI Responses API
-- Zod 4
-- Vitest 5
-- Playwright 1.57
-- Biome 2.5
-- GitHub Actions
-
-## Day 3 feature
-
-The engine runs an explicit evaluate -> question graph.
-
-It uses:
-- Resume project context
-- Role and branch context
-- Last 3 turns verbatim
-- Older-turn compression
+Day 3:
+- Adaptive evaluate -> question graph
+- Resume, role and branch context
+- Follow-up probing and difficulty adjustment
 - Anti-repetition
-- Follow-up probing for vague answers
-- Difficulty adjustment from 1-5
-- Redis persistence utility for interview state
+- Redis persistence utility
 
-## Test coverage
+Day 4:
+- Browser speech input with SpeechRecognition
+- Speech output with SpeechSynthesis
+- POST /api/interview/voice/start
+- POST /api/interview/voice/turn
+- Explicit interruption handling
+- Text fallback for unsupported voice input
+- Deterministic local fallback for network/API failure
+- Latency instrumentation
 
-- Resume-grounded opening question
-- Vague answer -> follow-up
-- Strong answer -> higher difficulty
+The voice layer is provider-agnostic. Production speech-provider integration can be added later without changing the interview-state API.
 
 Run:
-
-```bash
 pnpm install
 pnpm check
-```
+pnpm build
 
-The real-model adapter remains provider-configurable. Keep API keys in environment variables.
+Required environment for voice API execution:
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+REDIS_URL
+
+The Android weak-network under-2-second acceptance target is not claimed until measured on a real device and connection.

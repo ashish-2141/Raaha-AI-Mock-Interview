@@ -1,6 +1,6 @@
 # Raaha AI Mock Interview
 
-Modern Day 1 foundation for the Raaha AI mock interview platform.
+Production-oriented Day 1 foundation for the Raaha AI mock interview platform.
 
 ## Stack
 
@@ -24,11 +24,11 @@ Modern Day 1 foundation for the Raaha AI mock interview platform.
 - Architecture and system design
 - Data model
 - API design
-- Stack decision with trade-offs
+- Stack decision and trade-offs
 - Repository quality gates
-- Next.js application shell
+- Next.js App Router application shell
 - Health endpoint
-- Runtime schema validation starter
+- Runtime schema validation
 - Prisma data model starter
 - Unit and E2E testing setup
 
@@ -44,8 +44,8 @@ pnpm build
 
 ## Security baseline
 
-- AI output is untrusted until Zod validation succeeds.
-- Candidate code runs outside the web process.
-- Never commit secrets or provider keys.
-- Add rate limiting before exposing interview APIs publicly.
-- Add audit logging around evaluation and application-state changes.
+- Treat AI output as untrusted until Zod validation succeeds.
+- Never execute candidate code inside the Next.js process.
+- Keep provider SDK types outside domain models.
+- Never commit secrets or production connection strings.
+- Add authentication, rate limiting, audit logging and request IDs before production APIs.

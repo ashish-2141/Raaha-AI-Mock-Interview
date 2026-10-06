@@ -1,4 +1,4 @@
-import { advanceInterview } from "@/lib/interview/graph";
+import { advanceInterview } from "../interview/graph";
 import type { VoiceStartInput } from "./types";
 
 export function buildInitialVoiceState(input: VoiceStartInput) {

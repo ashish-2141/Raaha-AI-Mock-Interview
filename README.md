@@ -32,3 +32,4 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 REDIS_URL
 
 The Android weak-network under-2-second acceptance target is not claimed until measured on a real device and connection.
+Prisma uses the published 7.10.0 release in the current CI-compatible dependency set.

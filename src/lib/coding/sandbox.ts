@@ -27,29 +27,30 @@ export type SandboxResult = {
 
 function buildRunner(challenge: CodingChallenge): string {
   const cases = JSON.stringify(challenge.hiddenCases);
-  return (
-    "import { pathToFileURL } from \"node:url\";\n" +
-    "const cases = " + cases + ";\n" +
-    "const moduleUrl = pathToFileURL(\"/workspace/solution.mjs\").href;\n" +
-    "function stable(value) { return JSON.stringify(value); }\n" +
-    "const started = Date.now();\n" +
-    "try {\n" +
-    "  const module = await import(moduleUrl);\n" +
-    "  if (typeof module.twoSum !== \"function\") throw new Error(\"Expected exported twoSum(nums, target) function.\");\n" +
-    "  let passed = 0; const results = [];\n" +
-    "  for (let index = 0; index < cases.length; index += 1) {\n" +
-    "    const current = cases[index]; const testStarted = Date.now();\n" +
-    "    try {\n" +
-    "      const result = module.twoSum(...current.input);\n" +
-    "      const actual = Array.isArray(result) ? [...result].sort((a, b) => a - b) : result;\n" +
-    "      const expected = Array.isArray(current.expected) ? [...current.expected].sort((a, b) => a - b) : current.expected;\n" +
-    "      const casePassed = stable(actual) === stable(expected); if (casePassed) passed += 1;\n" +
-    "      results.push({ caseNumber: index + 1, passed: casePassed, durationMs: Date.now() - testStarted, ...(casePassed ? {} : { error: \"Output did not match hidden expectation.\" }) });\n" +
-    "    } catch (error) { results.push({ caseNumber: index + 1, passed: false, durationMs: Date.now() - testStarted, error: String(error?.message ?? error) }); }\n" +
-    "  }\n" +
-    "  console.log(JSON.stringify({ passed, total: cases.length, cases: results }));\n" +
-    "} catch (error) { console.error(String(error?.message ?? error)); process.exit(2); }\n"
-  );
+  return [
+    'import { pathToFileURL } from "node:url";',
+    "const cases = " + cases + ";",
+    'const moduleUrl = pathToFileURL("/workspace/solution.mjs").href;',
+    "function stable(value) { return JSON.stringify(value); }",
+    "const started = Date.now();",
+    "try {",
+    "  const module = await import(moduleUrl);",
+    '  if (typeof module.twoSum !== "function") throw new Error("Expected exported twoSum(nums, target) function.");',
+    "  let passed = 0; const results = [];",
+    "  for (let index = 0; index < cases.length; index += 1) {",
+    "    const current = cases[index]; const testStarted = Date.now();",
+    "    try {",
+    "      const result = module.twoSum(...current.input);",
+    "      const actual = Array.isArray(result) ? [...result].sort((a, b) => a - b) : result;",
+    "      const expected = Array.isArray(current.expected) ? [...current.expected].sort((a, b) => a - b) : current.expected;",
+    "      const casePassed = stable(actual) === stable(expected); if (casePassed) passed += 1;",
+    '      results.push({ caseNumber: index + 1, passed: casePassed, durationMs: Date.now() - testStarted, ...(casePassed ? {} : { error: "Output did not match hidden expectation." }) });',
+    "    } catch (error) { results.push({ caseNumber: index + 1, passed: false, durationMs: Date.now() - testStarted, error: String(error?.message ?? error) }); }",
+    "  }",
+    "  console.log(JSON.stringify({ passed, total: cases.length, cases: results }));",
+    "} catch (error) { console.error(String(error?.message ?? error)); process.exit(2); }",
+    "",
+  ].join("\n");
 }
 
 function buildDockerArgs(workdir: string): string[] {

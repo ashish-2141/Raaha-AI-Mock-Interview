@@ -28,34 +28,35 @@ export type SandboxResult = {
 function buildRunner(challenge: CodingChallenge): string {
   const cases = JSON.stringify(challenge.hiddenCases);
   return (
-    "import { pathToFileURL } from \\"node:url\\";\\n" +
-    "const cases = " + cases + ";\\n" +
-    "const moduleUrl = pathToFileURL(\\"/workspace/solution.mjs\\").href;\\n" +
-    "function stable(value) { return JSON.stringify(value); }\\n" +
-    "const started = Date.now();\\n" +
-    "try {\\n" +
-    "  const module = await import(moduleUrl);\\n" +
-    "  if (typeof module.twoSum !== \\"function\\") throw new Error(\\"Expected exported twoSum(nums, target) function.\\");\\n" +
-    "  let passed = 0; const results = [];\\n" +
-    "  for (let index = 0; index < cases.length; index += 1) {\\n" +
-    "    const current = cases[index]; const testStarted = Date.now();\\n" +
-    "    try {\\n" +
-    "      const result = module.twoSum(...current.input);\\n" +
-    "      const actual = Array.isArray(result) ? [...result].sort((a, b) => a - b) : result;\\n" +
-    "      const expected = Array.isArray(current.expected) ? [...current.expected].sort((a, b) => a - b) : current.expected;\\n" +
-    "      const casePassed = stable(actual) === stable(expected); if (casePassed) passed += 1;\\n" +
-    "      results.push({ caseNumber: index + 1, passed: casePassed, durationMs: Date.now() - testStarted, ...(casePassed ? {} : { error: \\"Output did not match hidden expectation.\\" }) });\\n" +
-    "    } catch (error) { results.push({ caseNumber: index + 1, passed: false, durationMs: Date.now() - testStarted, error: String(error?.message ?? error) }); }\\n" +
-    "  }\\n" +
-    "  console.log(JSON.stringify({ passed, total: cases.length, cases: results }));\\n" +
-    "} catch (error) { console.error(String(error?.message ?? error)); process.exit(2); }\\n"
+    "import { pathToFileURL } from \"node:url\";\n" +
+    "const cases = " + cases + ";\n" +
+    "const moduleUrl = pathToFileURL(\"/workspace/solution.mjs\").href;\n" +
+    "function stable(value) { return JSON.stringify(value); }\n" +
+    "const started = Date.now();\n" +
+    "try {\n" +
+    "  const module = await import(moduleUrl);\n" +
+    "  if (typeof module.twoSum !== \"function\") throw new Error(\"Expected exported twoSum(nums, target) function.\");\n" +
+    "  let passed = 0; const results = [];\n" +
+    "  for (let index = 0; index < cases.length; index += 1) {\n" +
+    "    const current = cases[index]; const testStarted = Date.now();\n" +
+    "    try {\n" +
+    "      const result = module.twoSum(...current.input);\n" +
+    "      const actual = Array.isArray(result) ? [...result].sort((a, b) => a - b) : result;\n" +
+    "      const expected = Array.isArray(current.expected) ? [...current.expected].sort((a, b) => a - b) : current.expected;\n" +
+    "      const casePassed = stable(actual) === stable(expected); if (casePassed) passed += 1;\n" +
+    "      results.push({ caseNumber: index + 1, passed: casePassed, durationMs: Date.now() - testStarted, ...(casePassed ? {} : { error: \"Output did not match hidden expectation.\" }) });\n" +
+    "    } catch (error) { results.push({ caseNumber: index + 1, passed: false, durationMs: Date.now() - testStarted, error: String(error?.message ?? error) }); }\n" +
+    "  }\n" +
+    "  console.log(JSON.stringify({ passed, total: cases.length, cases: results }));\n" +
+    "} catch (error) { console.error(String(error?.message ?? error)); process.exit(2); }\n"
   );
 }
 
 function buildDockerArgs(workdir: string): string[] {
   const image = process.env.RAAHA_SANDBOX_IMAGE ?? "node:24-alpine";
   return [
-    "run", "--rm",
+    "run",
+    "--rm",
     "--network", "none",
     "--memory", SANDBOX_POLICY.memoryMb + "m",
     "--cpus", SANDBOX_POLICY.cpuLimit,
@@ -82,7 +83,15 @@ function buildReview(challenge: CodingChallenge, cases: SandboxCaseResult[]): st
 export async function executeCodingChallenge(source: string, challenge: CodingChallenge): Promise<SandboxResult> {
   const validationError = validateCandidateSource(source);
   if (validationError) {
-    return { status: "rejected", cases: [], durationMs: 0, provider: "docker", isolated: true, networkDisabled: true, review: validationError };
+    return {
+      status: "rejected",
+      cases: [],
+      durationMs: 0,
+      provider: "docker",
+      isolated: true,
+      networkDisabled: true,
+      review: validationError,
+    };
   }
 
   const workdir = await mkdtemp(path.join(tmpdir(), "raaha-sandbox-"));
@@ -100,6 +109,7 @@ export async function executeCodingChallenge(source: string, challenge: CodingCh
     const parsed = JSON.parse(stdout.trim()) as { cases: SandboxCaseResult[] };
     const cases = parsed.cases;
     const passed = cases.filter((item) => item.passed).length;
+
     return {
       status: passed === cases.length ? "passed" : "failed",
       cases,
@@ -112,6 +122,7 @@ export async function executeCodingChallenge(source: string, challenge: CodingCh
   } catch (error) {
     const message = normalizeError(error instanceof Error ? error.message : "Sandbox execution failed.");
     const unavailable = /ENOENT|Cannot connect|daemon|docker|image/i.test(message);
+
     return {
       status: unavailable ? "unavailable" : "failed",
       cases: [],

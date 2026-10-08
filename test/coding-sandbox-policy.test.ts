@@ -7,7 +7,7 @@ describe("coding sandbox policy", () => {
   });
 
   it("rejects filesystem/process escape imports", () => {
-    expect(validateCandidateSource("import fs from \"node:fs\";")).toContain("blocked token");
+    expect(validateCandidateSource('import fs from "node:fs";')).toContain("blocked token");
   });
 
   it("rejects oversized source", () => {

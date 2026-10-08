@@ -90,6 +90,7 @@ const ANSWER_LEAKAGE_PATTERNS = [
   /what is the correct answer/i,
   /tell me the answer/i,
   /solve this for me/i,
+  /reveal (the )?(hidden|correct) answer/i,
 ];
 
 function countMatches(text: string, markers: string[]): number {

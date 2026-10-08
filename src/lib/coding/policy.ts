@@ -20,7 +20,7 @@ export function validateCandidateSource(source: string): string | null {
   const bytes = Buffer.byteLength(source, "utf8");
   if (bytes === 0) return "Source code is empty.";
   if (bytes > SANDBOX_POLICY.maxSourceBytes) {
-    return "Source code exceeds the " + SANDBOX_POLICY.maxSourceBytes + "-byte limit.";
+    return "Source code exceeds the 20,000-byte limit.";
   }
 
   const normalized = source.toLowerCase();

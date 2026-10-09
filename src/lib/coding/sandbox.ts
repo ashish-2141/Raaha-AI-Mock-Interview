@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import { SANDBOX_POLICY, normalizeError, validateCandidateSource } from "./policy";
 import type { CodingChallenge } from "./challenges";
+import { generateAiCodeReview } from "./review";
 
 const execFileAsync = promisify(execFile);
 
@@ -154,7 +155,14 @@ export async function executeCodingChallenge(source: string, challenge: CodingCh
       provider: "docker",
       isolated: true,
       networkDisabled: true,
-      review: buildReview(challenge, cases),
+      review: await generateAiCodeReview({
+        challengeTitle: challenge.title,
+        challengePrompt: challenge.prompt,
+        source,
+        passedCases: passed,
+        totalCases: challenge.hiddenCases.length,
+        fallbackReview: buildReview(challenge, cases),
+      }),
     };
   } catch (error) {
     const failure = describeExecutionFailure(error);

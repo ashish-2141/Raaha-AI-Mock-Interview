@@ -58,7 +58,7 @@ describe.skipIf(!dockerIntegrationEnabled)("Docker coding sandbox integration", 
     }`;
     const result = await executeCodingChallenge(source, challenge);
 
-    expect(result.status).toBe("passed");
+    expect(result.status, JSON.stringify(result)).toBe("passed");
     expect(result.cases.every((item) => item.passed)).toBe(true);
   }, 25_000);
 

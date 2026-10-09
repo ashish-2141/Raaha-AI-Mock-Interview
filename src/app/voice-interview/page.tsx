@@ -118,42 +118,6 @@ export default function VoiceInterviewPage() {
     };
   }, []);
 
-  const startListening = useCallback(() => {
-    const Recognition = getSpeechRecognition();
-    if (!Recognition) {
-      setStatus("error");
-      setLastReply("Voice input is unavailable in this browser. Use the text box below.");
-      return;
-    }
-
-    const recognition = new Recognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = "en-IN";
-    recognition.onresult = (event) => {
-      const spoken = Array.from({ length: event.results.length }, (_, index) =>
-        event.results[index]?.[0]?.transcript ?? "",
-      ).join(" ").trim();
-
-      if (spoken) {
-        setTranscript(spoken);
-        void submitTurn(spoken);
-      }
-    };
-    recognition.onerror = () => {
-      setStatus("error");
-      setLastReply("Voice input failed. You can retry or use the text fallback.");
-    };
-    recognition.onend = () => {
-      recognitionRef.current = null;
-      if (startedRef.current) setStatus("idle");
-    };
-
-    recognitionRef.current = recognition;
-    setStatus("listening");
-    recognition.start();
-  }, []);
-
   const submitTurn = useCallback(async (answer: string) => {
     if (!interviewId || !answer.trim()) return;
     setStatus("thinking");
@@ -189,6 +153,44 @@ export default function VoiceInterviewPage() {
       speak(fallback);
     }
   }, [interviewId]);
+
+  const startListening = useCallback(() => {
+    const Recognition = getSpeechRecognition();
+    if (!Recognition) {
+      setStatus("error");
+      setLastReply("Voice input is unavailable in this browser. Use the text box below.");
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-IN";
+    recognition.onresult = (event) => {
+      const spoken = Array.from({ length: event.results.length }, (_, index) =>
+        event.results[index]?.[0]?.transcript ?? "",
+      ).join(" ").trim();
+
+      if (spoken) {
+        setTranscript(spoken);
+        void submitTurn(spoken);
+      }
+    };
+    recognition.onerror = () => {
+      setStatus("error");
+      setLastReply("Voice input failed. You can retry or use the text fallback.");
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      if (startedRef.current) setStatus("idle");
+    };
+
+    recognitionRef.current = recognition;
+    setStatus("listening");
+    recognition.start();
+  }, [submitTurn]);
+
+
 
   async function startInterview() {
     if (!consentAccepted) {

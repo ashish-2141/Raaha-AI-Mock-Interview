@@ -14,7 +14,7 @@ function base(lastAnswer: string, history: string[] = [], concepts: string[] = [
       { name: "Hostel Booking API", techStack: ["Java", "Spring Boot", "PostgreSQL"], summary: "REST API with authentication and booking transactions." },
     ],
     lastAnswer,
-    answerHistory: [],
+    answerHistory: [] as string[],
     lastQuestionAtMs: Date.now() - 5000,
     lastResponseDurationMs: 0,
     scoreBreakdown: { evidence: 0, reasoning: 0, specificity: 0, clarity: 0, total: 0 },

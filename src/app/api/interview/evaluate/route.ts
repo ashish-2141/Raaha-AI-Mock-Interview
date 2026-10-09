@@ -12,7 +12,7 @@ const RequestSchema = z.object({
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+export async function POST(request: Request) {\n  const startedAt = performance.now();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
           ? "Flagged for human review only. Integrity flags do not directly reduce the candidate score."
           : "No automated integrity signal detected. This is not proof that an answer is authentic.",
       },
-      latencyMs: nextState.lastResponseDurationMs,
+      latencyMs: Math.round(performance.now() - startedAt),
       mode: "adaptive",
       userId: data.user.id,
     });

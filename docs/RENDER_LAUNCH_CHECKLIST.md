@@ -1,6 +1,6 @@
 # Render launch checklist
 
-This repo includes `render.yaml` for a managed web service and private, persistent Redis. The Blueprint uses Render's starter web plan and basic 256 MB Key Value plan in the Singapore region. These are paid resources. Review the current plan costs in Render before approving creation. Applying this Blueprint creates resources in the Render workspace you choose.
+This repo includes `render.yaml` for a managed web service and private, persistent Redis. The Blueprint uses Render's Starter web plan and Starter Key Value plan (256 MB) in the Singapore region. These are paid resources. Review the current plan costs in Render before approving creation. Applying this Blueprint creates resources in the Render workspace you choose.
 
 The Blueprint sets the Redis service to internal-only access. The web service receives its connection URL through a service reference. It deploys from `main` only when GitHub checks pass and runs `/api/health` as the health check.
 

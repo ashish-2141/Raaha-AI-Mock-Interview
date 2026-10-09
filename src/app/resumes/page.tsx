@@ -21,6 +21,7 @@ export default function ResumesPage() {
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
     setFile(event.target.files?.[0] ?? null);
+    window.sessionStorage.removeItem(RESUME_PROFILE_KEY);
     setProfile(null);
     setError("");
   }
@@ -67,7 +68,7 @@ export default function ResumesPage() {
     <main style={{ maxWidth: 800, margin: "0 auto", padding: "32px 20px 48px" }}>
       <p><Link href="/">← Home</Link></p>
       <h1>Resume parser</h1>
-      <p>Upload a PDF to extract a validated candidate profile and use it to personalise the next interview.</p>
+      <p>Upload a PDF to extract a validated candidate profile and use it to personalise the next interview. The extracted text is sent to the configured AI provider for processing; do not upload a resume unless you have permission to process its contents.</p>
       <form onSubmit={onSubmit}>
         <label>
           Resume PDF (maximum 5 MB and 10 pages)

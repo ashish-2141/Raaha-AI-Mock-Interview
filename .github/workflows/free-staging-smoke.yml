@@ -1,0 +1,35 @@
+name: Free staging smoke test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      BASE_URL: https://raaha-ai-mock-interview-free.onrender.com
+    steps:
+      - name: Wait for the free Render deploy and verify Redis-backed health
+        run: |
+          for attempt in $(seq 1 30); do
+            response="$(curl --silent --show-error --max-time 12 --write-out $'\n%{http_code}' "$BASE_URL/api/health" 2>&1 || true)"
+            status="$(printf '%s\n' "$response" | tail -n 1)"
+            body="$(printf '%s\n' "$response" | sed '$d')"
+
+            if [ "$status" = "200" ] &&
+              printf '%s' "$body" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' &&
+              printf '%s' "$body" | grep -Eq '"redis"[[:space:]]*:[[:space:]]*"ok"'; then
+              echo "Staging health passed: HTTP 200; Redis dependency is healthy."
+              printf '%s\n' "$body"
+              exit 0
+            fi
+
+            echo "Staging not healthy yet (attempt $attempt/30; HTTP $status). Retrying in 10 seconds."
+            sleep 10
+          done
+
+          echo "Staging health did not pass after 30 attempts. Check the Render deploy and logs."
+          exit 1

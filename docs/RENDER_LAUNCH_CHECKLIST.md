@@ -1,6 +1,6 @@
 # Render launch checklist
 
-This repo includes `render.yaml` for a managed web service and private, persistent Redis. The Blueprint uses Render's Starter web plan and Starter Key Value plan (256 MB) in the Singapore region. These are paid resources. Review the current plan costs in Render before approving creation. Applying this Blueprint creates resources in the Render workspace you choose.
+This repo includes `render.yaml` for a **free-tier staging deployment** in Render's Singapore region: one Free web service and one Free Key Value instance. This is configured to avoid a fixed service charge. Free services have important limits and are not appropriate for production: the web service sleeps after 15 minutes of inactivity, can restart, and may exhaust included usage; free Key Value has no persistence and its data can disappear on restart. Do not store durable data or conduct a live student pilot on this setup. Review the current free-tier limits and included usage in Render before exposing the app publicly.
 
 The Blueprint sets the Redis service to internal-only access. The web service receives its connection URL through a service reference. It deploys from `main` only when GitHub checks pass and runs `/api/health` as the health check.
 
@@ -8,7 +8,7 @@ The Blueprint sets the Redis service to internal-only access. The web service re
 
 1. Sign in to Render with an account authorised to deploy the GitHub repository.
 2. In Render, create a new Blueprint and select `ashish-2141/Raaha-AI-Mock-Interview` on `main`.
-3. Review the two resources and the current cost before confirming.
+3. Confirm both resources show the **Free** plan before creating them. Do not upgrade either service or enable paid add-ons.
 4. Set these prompted secret values in Render, not GitHub source control:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
@@ -62,4 +62,4 @@ Save the JSON result, deployed commit SHA, timestamp, selected concurrency, and 
 
 ## Current status
 
-The repository contains the launch configuration and test harness. It is not proof that a Render workspace has provisioned these resources, that the app is live, or that a college has enrolled students. Mark these gates complete only after the evidence above exists.
+The repository contains the launch configuration and test harness. A free Render staging service has been created in the connected workspace; it is not considered ready until the latest build passes, the health endpoint returns 200, and Supabase credentials are configured. This free tier is for smoke-testing only, not the real 10-student pilot. The deployed service does not have valid Supabase or OpenAI credentials yet.

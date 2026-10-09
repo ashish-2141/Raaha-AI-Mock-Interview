@@ -81,6 +81,8 @@ Do not commit the `.env` file. The public Supabase values are passed as Docker b
 
 ## Render deployment setup
 
-The repository also includes `render.yaml` for Render Blueprints. It creates a Next.js Docker web service and private, persistent Redis service in Singapore, and waits for GitHub checks before automatic deploys. These use paid service plans. Review the current Render price shown by the dashboard before approving resource creation.
+The repository also includes `render.yaml` for a **free-tier Render staging setup**: a Docker web service and private Key Value instance in Singapore, with deployment after GitHub checks pass. Free web instances sleep after inactivity and may restart; free Key Value does not persist data. Treat it as a smoke-test environment only, not production or a college pilot. Keep both services on the Free plan and do not enable paid add-ons.
+
+Current staging endpoint: [https://raaha-ai-mock-interview-free.onrender.com](https://raaha-ai-mock-interview-free.onrender.com). The free service is deployed, but it is **not ready for interviews yet** until valid Supabase project URL/publishable key are configured. AI-backed features also require a valid OpenAI key, which can incur API usage charges, so no AI API tests should be run under a zero-spend policy. Do not use this staging instance for real student data or the pilot; its Redis data is ephemeral.
 
 For the launch sequence, secret inputs, TPO mapping, privacy checks and real pilot steps, follow [the Render launch checklist](docs/RENDER_LAUNCH_CHECKLIST.md). The first deployment requires a Render account connected to this GitHub repository and your Supabase/OpenAI secrets. The repository itself does not confirm that the services have been provisioned or that a public URL is live.

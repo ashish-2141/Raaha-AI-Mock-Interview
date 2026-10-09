@@ -25,7 +25,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Challenge not found." }, { status: 404 });
     }
 
-    const result = await executeCodingChallenge(input.source, challenge);
+    const result = await executeCodingChallenge(input.source, challenge, {
+      allowAiReview: input.aiReviewConsentAccepted,
+    });
     const passed = result.cases.filter((item) => item.passed).length;
     await recordApiMetric("/api/coding/execute", 200, startedAt);
     return NextResponse.json({

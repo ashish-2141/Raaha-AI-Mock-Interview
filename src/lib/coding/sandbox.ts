@@ -5,8 +5,8 @@ import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import { SANDBOX_POLICY, normalizeError, validateCandidateSource } from "./policy";
-import type { CodingChallenge } from "./challenges";
 import { generateAiCodeReview } from "./review";
+import type { CodingChallenge } from "./challenges";
 
 const execFileAsync = promisify(execFile);
 
@@ -33,30 +33,21 @@ type SandboxExecError = Error & {
   signal?: string;
 };
 
-function buildRunner(challenge: CodingChallenge): string {
-  const cases = JSON.stringify(challenge.hiddenCases);
+/**
+ * Runs one test input inside the isolated container. Expected outputs and the hidden
+ * case list deliberately stay in the web-server process and are never mounted or
+ * passed into the candidate container. Only the current input is visible to code.
+ */
+function buildCaseRunner(): string {
   return [
     'import { pathToFileURL } from "node:url";',
-    "const cases = " + cases + ";",
-    'const moduleUrl = pathToFileURL("/workspace/solution.mjs").href;',
-    "function stable(value) { return JSON.stringify(value); }",
-    "const started = Date.now();",
-    "try {",
-    "  const module = await import(moduleUrl);",
-    '  if (typeof module.twoSum !== "function") throw new Error("Expected exported twoSum(nums, target) function.");',
-    "  let passed = 0; const results = [];",
-    "  for (let index = 0; index < cases.length; index += 1) {",
-    "    const current = cases[index]; const testStarted = Date.now();",
-    "    try {",
-    "      const result = module.twoSum(...current.input);",
-    "      const actual = Array.isArray(result) ? [...result].sort((a, b) => a - b) : result;",
-    "      const expected = Array.isArray(current.expected) ? [...current.expected].sort((a, b) => a - b) : current.expected;",
-    "      const casePassed = stable(actual) === stable(expected); if (casePassed) passed += 1;",
-    '      results.push({ caseNumber: index + 1, passed: casePassed, durationMs: Date.now() - testStarted, ...(casePassed ? {} : { error: "Output did not match hidden expectation." }) });',
-    "    } catch (error) { results.push({ caseNumber: index + 1, passed: false, durationMs: Date.now() - testStarted, error: String(error?.message ?? error) }); }",
-    "  }",
-    "  console.log(JSON.stringify({ passed, total: cases.length, cases: results }));",
-    "} catch (error) { console.error(String(error?.message ?? error)); process.exit(2); }",
+    'const rawInput = process.env.RAAHA_CASE_INPUT;',
+    'if (!rawInput) throw new Error("Test input is missing.");',
+    'const input = JSON.parse(rawInput);',
+    'const solution = await import(pathToFileURL("/workspace/solution.mjs").href);',
+    'if (typeof solution.twoSum !== "function") throw new Error("Expected exported twoSum(nums, target) function.");',
+    'const result = solution.twoSum(...input);',
+    'console.log(JSON.stringify({ result }));',
     "",
   ].join("\n");
 }
@@ -81,7 +72,7 @@ function buildDockerCreateArgs(workdir: string, containerName: string): string[]
     "--mount", "type=bind,src=" + workdir + ",dst=/workspace,readonly",
     "--workdir", "/workspace",
     image,
-    "node", "--no-warnings", "/workspace/runner.mjs",
+    "node", "-e", "setInterval(() => {}, 1000)",
   ];
 }
 
@@ -98,11 +89,22 @@ function describeExecutionFailure(error: unknown): { unavailable: boolean; timed
   const rawMessage = typed instanceof Error ? typed.message : "Sandbox execution failed.";
   const message = normalizeError(rawMessage);
   const code = typed && typeof typed.code !== "undefined" ? String(typed.code) : "";
-  const timedOut = code === "ETIMEDOUT" || typed?.killed === true || /timed out|time limit exceeded/i.test(rawMessage);
+  const timedOut =
+    code === "ETIMEDOUT" ||
+    typed?.killed === true ||
+    /timed out|time limit exceeded/i.test(rawMessage);
   const unavailable =
     code === "ENOENT" ||
     /cannot connect to the Docker daemon|error during connect|daemon is not running|no such image|pull access denied|manifest unknown|failed to resolve reference|toomanyrequests|429 too many requests/i.test(rawMessage);
   return { unavailable, timedOut, message };
+}
+
+function normalizeActual(value: unknown): unknown {
+  return Array.isArray(value) ? [...value].sort((a, b) => Number(a) - Number(b)) : value;
+}
+
+function stable(value: unknown): string {
+  return JSON.stringify(value);
 }
 
 export async function executeCodingChallenge(
@@ -127,12 +129,14 @@ export async function executeCodingChallenge(
   const startedAt = Date.now();
   const containerName = "raaha-sandbox-" + randomUUID();
   let containerId: string | null = null;
+  const cases: SandboxCaseResult[] = [];
+  let timedOut = false;
 
   try {
-    // The sandbox runs as a non-root user, so the mounted source files must be readable.
+    // Only candidate source is mounted. Hidden case inputs/expected outputs remain
+    // in this process and are checked here, outside the candidate's container.
     await chmod(workdir, 0o755);
     await writeFile(path.join(workdir, "solution.mjs"), source, { encoding: "utf8", mode: 0o644 });
-    await writeFile(path.join(workdir, "runner.mjs"), buildRunner(challenge), { encoding: "utf8", mode: 0o644 });
 
     const created = await execFileAsync("docker", buildDockerCreateArgs(workdir, containerName), {
       timeout: 30_000,
@@ -141,38 +145,96 @@ export async function executeCodingChallenge(
     containerId = created.stdout.trim();
     if (!containerId) throw new Error("Docker did not return a sandbox container ID.");
 
-    // Attach timeout applies to the client command; finally always force-removes the
-    // named container so an infinite loop cannot keep running after the request ends.
-    const { stdout } = await execFileAsync("docker", ["start", "--attach", containerId], {
-      timeout: SANDBOX_POLICY.timeoutMs + 2_000,
-      maxBuffer: 64 * 1024,
+    await execFileAsync("docker", ["start", "--detach", containerId], {
+      timeout: 10_000,
+      maxBuffer: 16 * 1024,
     });
 
-    const parsed = JSON.parse(stdout.trim()) as { cases: SandboxCaseResult[] };
-    const cases = parsed.cases;
-    const passed = cases.filter((item) => item.passed).length;
+    const runner = buildCaseRunner();
+    for (let index = 0; index < challenge.hiddenCases.length; index += 1) {
+      const current = challenge.hiddenCases[index];
+      if (!current) continue;
+      const caseStartedAt = Date.now();
 
-    return {
-      status: passed === cases.length ? "passed" : "failed",
-      cases,
-      durationMs: Date.now() - startedAt,
-      provider: "docker",
-      isolated: true,
-      networkDisabled: true,
-      review: await generateAiCodeReview({
+      try {
+        const { stdout } = await execFileAsync("docker", [
+          "exec",
+          "--user", "65534:65534",
+          "--env", "RAAHA_CASE_INPUT=" + JSON.stringify(current.input),
+          containerId,
+          "node", "--no-warnings", "--input-type=module", "-e", runner,
+        ], {
+          timeout: SANDBOX_POLICY.timeoutMs + 1_000,
+          maxBuffer: 64 * 1024,
+        });
+
+        const outputLine = stdout.trim().split(/\r?\n/).at(-1);
+        if (!outputLine) throw new Error("Sandbox returned no result.");
+        const payload = JSON.parse(outputLine) as { result?: unknown };
+        if (!Object.prototype.hasOwnProperty.call(payload, "result")) {
+          throw new Error("Sandbox returned an invalid result.");
+        }
+
+        const passed = stable(normalizeActual(payload.result)) === stable(normalizeActual(current.expected));
+        cases.push({
+          caseNumber: index + 1,
+          passed,
+          durationMs: Date.now() - caseStartedAt,
+          ...(passed ? {} : { error: "Output did not match hidden expectation." }),
+        });
+      } catch (error) {
+        const failure = describeExecutionFailure(error);
+        if (failure.timedOut) {
+          timedOut = true;
+          cases.push({
+            caseNumber: index + 1,
+            passed: false,
+            durationMs: Date.now() - caseStartedAt,
+            error: "Execution exceeded the time limit.",
+          });
+          break;
+        }
+        cases.push({
+          caseNumber: index + 1,
+          passed: false,
+          durationMs: Date.now() - caseStartedAt,
+          error: failure.message,
+        });
+        if (failure.unavailable) throw error;
+      }
+    }
+
+    const passed = cases.filter((item) => item.passed).length;
+    const allCasesCovered = cases.length === challenge.hiddenCases.length;
+    const status = !timedOut && allCasesCovered && passed === challenge.hiddenCases.length ? "passed" : "failed";
+    const fallbackReview = timedOut
+      ? "Execution exceeded the time limit. The sandbox container is forcibly removed."
+      : buildReview(challenge, cases);
+    const review = timedOut
+      ? fallbackReview
+      : await generateAiCodeReview({
         challengeTitle: challenge.title,
         challengePrompt: challenge.prompt,
         source,
         passedCases: passed,
         totalCases: challenge.hiddenCases.length,
-        fallbackReview: buildReview(challenge, cases),
-      }, options.allowAiReview === true),
+        fallbackReview,
+      }, options.allowAiReview === true);
+
+    return {
+      status,
+      cases,
+      durationMs: Date.now() - startedAt,
+      provider: "docker",
+      isolated: true,
+      networkDisabled: true,
+      review,
     };
   } catch (error) {
     const failure = describeExecutionFailure(error);
     return {
       status: failure.unavailable ? "unavailable" : "failed",
-      cases: [],
+      cases,
       durationMs: Date.now() - startedAt,
       provider: "docker",
       isolated: true,
@@ -188,7 +250,7 @@ export async function executeCodingChallenge(
       try {
         await execFileAsync("docker", ["rm", "--force", containerId], { timeout: 5_000, maxBuffer: 16 * 1024 });
       } catch {
-        // Do not include candidate source or container output in logs. Docker cleanup is best-effort.
+        // Do not include candidate source or container output in logs. Cleanup is best-effort.
       }
     }
     await rm(workdir, { recursive: true, force: true });

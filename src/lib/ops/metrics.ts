@@ -87,12 +87,16 @@ export async function getOperationsSummary() {
   if (!redis.isOpen) await redis.connect();
   const rows = await redis.lRange(EVENTS_KEY, 0, MAX_EVENTS - 1);
   const events: OperationalEvent[] = [];
+  const cutoffMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
   for (const row of rows) {
     try {
       const parsed: unknown = JSON.parse(row);
       if (typeof parsed === "object" && parsed !== null && "kind" in parsed && "route" in parsed) {
-        events.push(parsed as OperationalEvent);
+        const event = parsed as OperationalEvent;
+        if (typeof event.timestamp === "string" && Date.parse(event.timestamp) >= cutoffMs) {
+          events.push(event);
+        }
       }
     } catch {
       // Ignore corrupt old telemetry rows; no request payloads are stored here.

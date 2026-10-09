@@ -139,6 +139,7 @@ export function buildCollegeDashboardSummary(
   }
 
   const visibleSessions = sessions.filter((session) => branches.some((branch) => branch.branch === (session.branch || "Unspecified")));
+  const visibleEvaluations = visibleSessions.flatMap((session) => session.evaluationHistory);
 
   return {
     generatedAt,

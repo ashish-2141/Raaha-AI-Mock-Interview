@@ -72,6 +72,7 @@ describe("adaptive interview engine", () => {
 describe("branch-specific interview question banks", () => {
   const cases = [
     ["CSE", "Junior Backend Developer", "REST API"],
+    ["IT", "Java Backend Developer", "REST API"],
     ["ECE", "Embedded/IoT Engineer", "microcontroller"],
     ["EEE", "Electrical Engineer", "power loss"],
     ["MECH", "Mechanical Engineer", "shaft"],
@@ -83,6 +84,7 @@ describe("branch-specific interview question banks", () => {
     ["METALLURGY", "Metallurgy Intern", "steel"],
     ["MINING", "Mining Engineer", "open-pit"],
     ["BIOTECH", "Biotechnology Intern", "laboratory"],
+    ["OTHER", "General Engineering Intern", "Walk me through"],
   ] as const;
 
   it("adjusts question selection and follow-up depth to difficulty", () => {

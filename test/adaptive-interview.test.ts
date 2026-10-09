@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceInterview } from "../src/lib/interview/graph";
-import { getQuestionBankForContext } from "../src/lib/interview/questions";
+import { getQuestionBankForContext, selectNextQuestion } from "../src/lib/interview/questions";
 
 function base(lastAnswer: string, history: string[] = [], concepts: string[] = [], difficultyScore = 3) {
   return {
@@ -84,6 +84,31 @@ describe("branch-specific interview question banks", () => {
     ["MINING", "Mining Engineer", "open-pit"],
     ["BIOTECH", "Biotechnology Intern", "laboratory"],
   ] as const;
+
+  it("adjusts question selection and follow-up depth to difficulty", () => {
+    const base = {
+      branch: "CSE",
+      role: "Junior Backend Developer",
+      questionHistory: [] as string[],
+      evaluatedConcepts: [] as string[],
+      resumeProjects: [],
+      followUp: false,
+    };
+    const introductory = selectNextQuestion({ ...base, difficulty: 2 });
+    const advanced = selectNextQuestion({ ...base, difficulty: 5 });
+
+    expect(introductory).toContain("Why are you interested");
+    expect(advanced.toLowerCase()).toMatch(/concurrent|monitor/);
+
+    const lowFollowUp = selectNextQuestion({
+      ...base, difficulty: 1, followUp: true, evaluatedConcepts: ["databases"],
+    });
+    const highFollowUp = selectNextQuestion({
+      ...base, difficulty: 5, followUp: true, evaluatedConcepts: ["databases"],
+    });
+    expect(lowFollowUp.toLowerCase()).toContain("basics");
+    expect(highFollowUp.toLowerCase()).toContain("failure cases");
+  });
 
   it("provides ten distinct questions for every documented engineering branch", () => {
     for (const [branch, role, expectedPhrase] of cases) {

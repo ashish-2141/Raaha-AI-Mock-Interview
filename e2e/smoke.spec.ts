@@ -28,6 +28,7 @@ test("resume profile in this tab personalises the interview setup", async ({ pag
   await expect(page.getByText(/Using the profile for Test Candidate/)).toBeVisible();
   await expect(page.getByLabel("B.Tech branch")).toHaveValue("ECE");
   await expect(page.getByLabel("Target role")).toHaveValue("Embedded/IoT Engineer");
+  await page.getByText("Resume projects used to personalise questions").click();
   await expect(page.getByText(/Sensor Gateway/)).toBeVisible();
 });
 

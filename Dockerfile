@@ -23,6 +23,8 @@ RUN mkdir -p public && ./node_modules/.bin/next build
 
 FROM base AS runner
 ENV NODE_ENV=production
+# Ensure Render's public proxy can reach the Next.js standalone server.
+ENV HOSTNAME=0.0.0.0
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public

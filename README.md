@@ -40,7 +40,7 @@ The home page links to sign-in/account registration, resume parsing, voice inter
 
 Read [System Design and Stack Trade-offs](SYSTEM_DESIGN.md) for the alternatives considered, explicit current-versus-target architecture, estimated token costs, latency measurement plan and 1,000-student/day capacity assumptions. It is a draft awaiting manager approval, not an approved architecture decision.
 
-Current status remains staging-only: the free Render URL and Redis health are verified, but valid Supabase credentials are still needed for sign-in. Interview question selection/scoring is currently deterministic rather than an LLM call per turn. Real-resume accuracy, Android weak-network latency, Docker execution timeout/cleanup, authenticated load testing, and the consenting 10-student pilot must be verified against their stated acceptance criteria.
+Current status remains staging-only: the free Render URL and Redis health are verified, but valid Supabase credentials are still needed for sign-in. Question generation and scoring are deterministic by default; optional model-generated questions can be enabled by an explicit server flag, while score evaluation remains deterministic. Real-resume accuracy, Android weak-network latency, Docker execution timeout/cleanup, authenticated load testing, and the consenting 10-student pilot must be verified against their stated acceptance criteria. The latest coding changes are in a pending branch until its full CI pipeline succeeds and is merged.
 
 ### Optional model features
 

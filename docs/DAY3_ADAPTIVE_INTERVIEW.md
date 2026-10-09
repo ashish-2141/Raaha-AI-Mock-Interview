@@ -11,10 +11,13 @@
 - Difficulty rises after strong answers and drops after weak answers.
 - Anti-repetition by filtering questions already asked.
 - Redis 24-hour state storage utility using node-redis.
+- Optional schema-constrained OpenAI question generation using the branch, target role, difficulty, prior questions/answers and resume project context. The `RAAHA_AI_INTERVIEW_ENABLED` flag is false by default; the deterministic question bank remains the no-cost fallback. Scoring remains deterministic and independent of model-generated feedback.
 
 LangGraph provides stateful graph execution and conditional workflow building, which fits the conversation-state requirements for this feature. The current npm release is 1.4.18. Redis documents node-redis as the recommended Node.js client and supports Redis 8.0.z.
 
 ## Acceptance evidence
+
+Pure tests validate the bounded prompt context and structured output schema without making model/API calls. Model-backed question generation has not been live-tested because the zero-spend staging deployment intentionally leaves it disabled.
 
 Three automated test interviews are implemented:
 1. Initial question is grounded in a resume project.

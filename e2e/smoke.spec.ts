@@ -9,6 +9,15 @@ test("home page links to the product's primary workflows", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Live coding round" })).toHaveAttribute("href", "/live-coding");
 });
 
+test("login screen exposes account registration without submitting credentials", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await page.getByRole("button", { name: "Create an account" }).click();
+  await expect(page.getByRole("heading", { name: "Create an account" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
+  await expect(page.getByLabel("Password")).toHaveAttribute("autocomplete", "new-password");
+});
+
 test("resume profile in this tab personalises the interview setup", async ({ page }) => {
   await page.addInitScript(() => {
     window.sessionStorage.setItem("raaha.resume.profile", JSON.stringify({

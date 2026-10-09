@@ -17,7 +17,7 @@ The Day 5 live-coding slice now exists in the working repository.
 - Aggregate pass/fail result plus case timing
 - Deterministic solution-review feedback
 
-The sandbox now creates a uniquely named container, uses a non-root runtime, enforces CPU/memory/process/file-descriptor limits, disables network access, makes the root filesystem read-only, and force-removes the container in a `finally` path even when the attached execution command times out. The Docker integration suite covers a valid solution, an incorrect solution, and infinite-loop timeout/cleanup. CI runs those integration tests on a Docker-capable runner using the public ECR Node image.
+The sandbox now creates a uniquely named container, uses a non-root runtime, enforces CPU/memory/process/file-descriptor limits, disables network access, makes the root filesystem read-only, and force-removes the container in a `finally` path even when the attached execution command times out. Optional structured AI code review (summary, time complexity, space complexity, strengths and improvements) is available only when `RAAHA_AI_CODE_REVIEW_ENABLED=true` and an OpenAI key is configured. It is disabled by default to avoid API usage; the provider receives the public problem statement, submitted source and aggregate pass count, never hidden test cases. The Docker integration suite covers a valid solution, an incorrect solution, and infinite-loop timeout/cleanup. Unit tests validate the optional code-review schema and assert that hidden test cases are not part of the review input. CI runs those integration tests on a Docker-capable runner using the public ECR Node image.
 
 ## Acceptance boundary
 

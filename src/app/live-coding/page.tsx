@@ -18,6 +18,7 @@ export default function LiveCodingPage() {
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(true);
   const [running, setRunning] = useState(false);
+  const [aiReviewConsentAccepted, setAiReviewConsentAccepted] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -38,7 +39,12 @@ export default function LiveCodingPage() {
       const response = await fetch("/api/coding/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeId: challenge.id, language: "javascript", source }),
+        body: JSON.stringify({
+          challengeId: challenge.id,
+          language: "javascript",
+          source,
+          aiReviewConsentAccepted,
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Execution failed.");
@@ -68,6 +74,17 @@ export default function LiveCodingPage() {
             spellCheck={false}
             style={{ width: "100%", marginTop: 12, fontFamily: "monospace", fontSize: 14 }}
           />
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, lineHeight: 1.5 }}>
+            <input
+              type="checkbox"
+              checked={aiReviewConsentAccepted}
+              onChange={(event) => setAiReviewConsentAccepted(event.target.checked)}
+              style={{ marginTop: 5 }}
+            />
+            <span>
+              Optional AI code review consent: if enabled by the service operator, my submitted code, public challenge statement, and aggregate pass count may be sent to the configured AI provider for complexity and quality feedback. Hidden test inputs and expected outputs are never sent. This feature is disabled by default.
+            </span>
+          </label>
           <button type="button" onClick={run} disabled={running || !source.trim()} style={{ marginTop: 12 }}>
             {running ? "Running hidden tests..." : "Run hidden tests"}
           </button>

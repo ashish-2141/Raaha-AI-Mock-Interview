@@ -41,6 +41,28 @@ type VoicePayload = {
 };
 
 const INTERVIEW_ID_STORAGE = "raaha.voice.interviewId";
+const RESUME_PROFILE_KEY = "raaha.resume.profile";
+
+type ResumeProfile = {
+  fullName: string;
+  branch: string;
+  cgpa: number | null;
+  skills: string[];
+  projects: Array<{ name: string; techStack: string[]; summary: string }>;
+};
+
+function suggestedRoleForBranch(branch: string): string {
+  const key = branch.toUpperCase();
+  if (key === "ECE") return "Embedded/IoT Engineer";
+  if (key === "EEE") return "Electrical Engineer";
+  if (key === "MECH") return "Mechanical Engineer";
+  if (key === "CIVIL") return "Civil Engineer";
+  if (key === "AI_ML") return "AI/ML Engineer";
+  if (key === "DATA_SCIENCE") return "Data Analyst";
+  if (key === "CYBERSECURITY") return "Junior Security Analyst";
+  if (key === "CHEMICAL") return "Chemical Engineer";
+  return "Junior Backend Developer";
+}
 
 function getSpeechRecognition(): SpeechRecognitionConstructor | null {
   const voiceWindow = window as VoiceWindow;
@@ -61,6 +83,10 @@ export default function VoiceInterviewPage() {
   const [status, setStatus] = useState<"idle" | "starting" | "listening" | "thinking" | "error">("idle");
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [difficulty, setDifficulty] = useState(3);
+  const [branch, setBranch] = useState("CSE");
+  const [role, setRole] = useState("Junior Backend Developer");
+  const [resumeName, setResumeName] = useState("");
+  const [resumeProjects, setResumeProjects] = useState<ResumeProfile["projects"]>([]);
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [pilotCode, setPilotCode] = useState("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -69,6 +95,23 @@ export default function VoiceInterviewPage() {
   useEffect(() => {
     const stored = window.localStorage.getItem(INTERVIEW_ID_STORAGE);
     if (stored) setInterviewId(stored);
+
+    // Resume profiles are kept only in this tab's session storage; never log profile content.
+    try {
+      const serializedProfile = window.sessionStorage.getItem(RESUME_PROFILE_KEY);
+      if (serializedProfile) {
+        const profile = JSON.parse(serializedProfile) as ResumeProfile;
+        if (typeof profile.fullName === "string" && typeof profile.branch === "string" && Array.isArray(profile.projects)) {
+          setResumeName(profile.fullName);
+          setBranch(profile.branch);
+          setRole(suggestedRoleForBranch(profile.branch));
+          setResumeProjects(profile.projects);
+        }
+      }
+    } catch {
+      window.sessionStorage.removeItem(RESUME_PROFILE_KEY);
+    }
+
     return () => {
       recognitionRef.current?.abort();
       window.speechSynthesis?.cancel();
@@ -162,10 +205,10 @@ export default function VoiceInterviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           interviewId: id,
-          branch: "CSE",
-          role: "Junior Backend Developer",
+          branch,
+          role,
           difficultyScore: 3,
-          resumeProjects: [],
+          resumeProjects,
           consentAccepted: true,
           pilotCode: pilotCode.trim() || undefined,
         }),
@@ -208,6 +251,29 @@ export default function VoiceInterviewPage() {
       <h1>Real-time voice interview</h1>
       <p>Speak your answer, hear the next question, or use the text fallback when voice is unavailable.</p>
 
+      <section aria-label="Interview setup" style={{ border: "1px solid #d8dee8", borderRadius: 12, padding: 16, marginTop: 20 }}>
+        <h2>Interview setup</h2>
+        {resumeName ? (
+          <p>Using the profile for <strong>{resumeName}</strong> with {resumeProjects.length} project(s) from the resume parser.</p>
+        ) : (
+          <p>No resume profile is loaded. You can <a href="/resumes">parse a resume first</a>, or continue with a general interview.</p>
+        )}
+        <label style={{ display: "block", marginTop: 10 }}>
+          B.Tech branch
+          <input value={branch} onChange={(event) => setBranch(event.target.value)} maxLength={80} required style={{ display: "block", width: "100%", boxSizing: "border-box", padding: 10, marginTop: 6 }} />
+        </label>
+        <label style={{ display: "block", marginTop: 10 }}>
+          Target role
+          <input value={role} onChange={(event) => setRole(event.target.value)} maxLength={120} required style={{ display: "block", width: "100%", boxSizing: "border-box", padding: 10, marginTop: 6 }} />
+        </label>
+        {resumeProjects.length ? (
+          <details style={{ marginTop: 12 }}>
+            <summary>Resume projects used to personalise questions</summary>
+            <ul>{resumeProjects.map((project, index) => <li key={project.name + index}>{project.name}: {project.techStack.join(", ")}</li>)}</ul>
+          </details>
+        ) : null}
+      </section>
+
       <section aria-label="Consent and pilot settings" style={{ border: "1px solid #d8dee8", borderRadius: 12, padding: 16, marginTop: 20 }}>
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, lineHeight: 1.5 }}>
           <input
@@ -242,7 +308,7 @@ export default function VoiceInterviewPage() {
       </section>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-        <button onClick={startInterview} disabled={status === "starting" || !consentAccepted}>
+        <button onClick={startInterview} disabled={status === "starting" || !consentAccepted || !branch.trim() || !role.trim()}>
           {status === "starting" ? "Starting..." : "Start interview"}
         </button>
         <button onClick={startListening} disabled={!interviewId || status === "thinking"}>

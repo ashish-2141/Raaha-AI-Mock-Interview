@@ -38,8 +38,8 @@ export function buildAiCodeReviewInput(input: AiCodeReviewInput): string {
  * aggregate pass count are sent to the configured model; hidden test inputs/results
  * are never sent.
  */
-export async function generateAiCodeReview(input: AiCodeReviewInput): Promise<string> {
-  if (process.env.RAAHA_AI_CODE_REVIEW_ENABLED !== "true" || !process.env.OPENAI_API_KEY) {
+export async function generateAiCodeReview(input: AiCodeReviewInput, userConsentAccepted: boolean): Promise<string> {
+  if (!userConsentAccepted || process.env.RAAHA_AI_CODE_REVIEW_ENABLED !== "true" || !process.env.OPENAI_API_KEY) {
     return input.fallbackReview;
   }
 

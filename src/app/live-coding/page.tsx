@@ -85,17 +85,6 @@ export default function LiveCodingPage() {
               Optional AI code review consent: if enabled by the service operator, my submitted code, public challenge statement, and aggregate pass count may be sent to the configured AI provider for complexity and quality feedback. Hidden test inputs and expected outputs are never sent. This feature is disabled by default.
             </span>
           </label>
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, lineHeight: 1.5 }}>
-            <input
-              type="checkbox"
-              checked={aiReviewConsentAccepted}
-              onChange={(event) => setAiReviewConsentAccepted(event.target.checked)}
-              style={{ marginTop: 5 }}
-            />
-            <span>
-              Optional AI code review consent: if enabled by the service operator, my submitted code, public challenge statement, and aggregate pass count may be sent to the configured AI provider for complexity and quality feedback. Hidden test inputs and expected outputs are never sent. This feature is disabled by default.
-            </span>
-          </label>
           <button type="button" onClick={run} disabled={running || !source.trim()} style={{ marginTop: 12 }}>
             {running ? "Running hidden tests..." : "Run hidden tests"}
           </button>

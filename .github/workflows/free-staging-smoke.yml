@@ -15,15 +15,15 @@ jobs:
       - name: Wait for the free Render deploy and verify Redis-backed health
         run: |
           for attempt in $(seq 1 30); do
-            response="$(curl --silent --show-error --max-time 12 --write-out $'\\n%{http_code}' "$BASE_URL/api/health" 2>&1 || true)"
-            status="$(printf '%s\\n' "$response" | tail -n 1)"
-            body="$(printf '%s\\n' "$response" | sed '$d')"
+            response="$(curl --silent --show-error --max-time 12 --write-out $'\n%{http_code}' "$BASE_URL/api/health" 2>&1 || true)"
+            status="$(printf '%s\n' "$response" | tail -n 1)"
+            body="$(printf '%s\n' "$response" | sed '$d')"
 
             if [ "$status" = "200" ] &&
               printf '%s' "$body" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' &&
               printf '%s' "$body" | grep -Eq '"redis"[[:space:]]*:[[:space:]]*"ok"'; then
               echo "Staging health passed: HTTP 200; Redis dependency is healthy."
-              printf '%s\\n' "$body"
+              printf '%s\n' "$body"
               exit 0
             fi
 

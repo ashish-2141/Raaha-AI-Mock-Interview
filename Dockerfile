@@ -6,7 +6,7 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile=false
+RUN pnpm install --frozen-lockfile=false --allow-build=prisma --allow-build=@prisma/engines
 
 FROM base AS build
 ARG NEXT_PUBLIC_SUPABASE_URL

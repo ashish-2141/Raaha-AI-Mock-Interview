@@ -42,6 +42,10 @@ Read [System Design and Stack Trade-offs](SYSTEM_DESIGN.md) for the alternatives
 
 Current status remains staging-only: the free Render URL and Redis health are verified, but valid Supabase credentials are still needed for sign-in. Interview question selection/scoring is currently deterministic rather than an LLM call per turn. Real-resume accuracy, Android weak-network latency, Docker execution timeout/cleanup, authenticated load testing, and the consenting 10-student pilot must be verified against their stated acceptance criteria.
 
+### Optional model features
+
+Model-backed question generation is available when `RAAHA_AI_INTERVIEW_ENABLED=true`; it remains off by default. The rubric score continues to be deterministic. Model-backed coding feedback is separately gated by `RAAHA_AI_CODE_REVIEW_ENABLED=true` **and** the participant's explicit consent checkbox. Both paths use the configured OpenAI API key and can incur usage charges when enabled. With flags unset/false, no question-generation or code-review API calls are made. No AI API keys are included in the free staging environment.
+
 ## College dashboard and pilot setup
 
 The authenticated TPO dashboard is available at `/college-dashboard`. It returns cohort-level aggregates only. Individual answers and candidate identifiers are not returned. The overall cohort is suppressed until at least five consenting participants contribute. Each displayed branch and skill group independently needs five distinct participants.

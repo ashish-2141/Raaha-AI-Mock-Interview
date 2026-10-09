@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
-import { recordModelUsage } from "@/lib/ops/metrics";
+import { recordModelUsage } from "../ops/metrics";
 
 export const AiInterviewQuestionSchema = z.object({
   question: z.string().trim().min(15).max(500),

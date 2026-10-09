@@ -1,0 +1,55 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set NEXT_PUBLIC_SUPABASE_URL in .env}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?Set NEXT_PUBLIC_APP_URL before building}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set NEXT_PUBLIC_SUPABASE_URL in .env}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?Set NEXT_PUBLIC_APP_URL before building}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env}
+      OPENAI_RESUME_MODEL: ${OPENAI_RESUME_MODEL:-gpt-5.5}
+      DATABASE_URL: ${DATABASE_URL:-}
+      REDIS_URL: redis://redis:6379
+      RAAHA_PILOT_COLLEGE_ID: ${RAAHA_PILOT_COLLEGE_ID:-}
+      RAAHA_PILOT_INVITE_CODE: ${RAAHA_PILOT_INVITE_CODE:-}
+      RAAHA_COLLEGE_DASHBOARD_ACCESS_JSON: ${RAAHA_COLLEGE_DASHBOARD_ACCESS_JSON:-}
+      RAAHA_OPERATIONS_ADMIN_USER_IDS: ${RAAHA_OPERATIONS_ADMIN_USER_IDS:-}
+      RAAHA_OPENAI_INPUT_USD_PER_1M: ${RAAHA_OPENAI_INPUT_USD_PER_1M:-}
+      RAAHA_OPENAI_OUTPUT_USD_PER_1M: ${RAAHA_OPENAI_OUTPUT_USD_PER_1M:-}
+    ports:
+      - "${RAAHA_BIND_ADDRESS:-127.0.0.1}:3000:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  redis_data:

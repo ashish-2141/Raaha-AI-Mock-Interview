@@ -63,3 +63,18 @@ pnpm loadtest:dashboard
 The script reports status counts, requests per second, p50/p95/max latency, and failures. Store the output alongside the deployment version and test window. Keep the cookie in an environment variable, never in source control or a report.
 
 Operations summaries are restricted to IDs in `RAAHA_OPERATIONS_ADMIN_USER_IDS`. Token-cost tracking requires configured per-million-token rates. If rates are absent, cost is recorded as unknown, not zero.
+
+## Self-hosted Docker deployment
+
+A Docker Compose deployment path is included for a Linux host with Docker Engine and the Compose plugin. It runs the Next.js app and Redis, keeps Redis private on the Compose network, and binds the app to `127.0.0.1:3000` by default. Put a TLS reverse proxy in front of it for public HTTPS traffic.
+
+Read [the deployment runbook](docs/DEPLOYMENT_RUNBOOK.md) before starting. Copy `.env.example` to `.env`, configure Supabase and OpenAI, set the final HTTPS origin in `NEXT_PUBLIC_APP_URL` before the image build, then run:
+
+```sh
+docker compose config
+docker compose up --build -d
+docker compose ps
+curl -fsS http://127.0.0.1:3000/api/health
+```
+
+Do not commit the `.env` file. The public Supabase values are passed as Docker build arguments because Next.js embeds `NEXT_PUBLIC_*` values into the browser bundle. Server secrets remain runtime environment variables. The deployment is not considered production-accepted until the actual host, URL, health check, TPO mapping, load test and consented 10-student pilot are verified.

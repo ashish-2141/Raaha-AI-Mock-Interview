@@ -17,3 +17,21 @@ jobs:
       - run: pnpm biome format --write .
       - run: pnpm check
       - run: pnpm build
+      - name: Validate Docker Compose configuration
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://supabase.example.invalid
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
+          OPENAI_API_KEY: ci-placeholder-openai-key
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: docker compose config --quiet
+      - name: Build production container image
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://supabase.example.invalid
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
+            --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" \
+            --build-arg NEXT_PUBLIC_APP_URL="$NEXT_PUBLIC_APP_URL" \
+            --tag raaha-ai-mock-interview:ci .

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { InterviewProjectSchema } from "@/lib/interview/types";
+import { InterviewProjectSchema } from "../interview/types";
 
 export const VoiceStartInputSchema = z.object({
   interviewId: z.uuid(),

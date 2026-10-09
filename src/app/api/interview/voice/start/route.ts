@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { VoiceStartInputSchema } from "@/lib/voice/types";
 import { createInitialVoiceTurn } from "@/lib/voice/protocol";
 import { saveVoiceSession } from "@/lib/voice/session";
@@ -17,6 +18,13 @@ function matchesPilotCode(supplied: string, expected: string): boolean {
 
 export async function POST(request: Request) {
   const startedAt = performance.now();
+  if (!isSupabaseConfigured()) {
+    await recordApiMetric("/api/interview/voice/start", 503, startedAt);
+    return NextResponse.json(
+      { error: "Supabase authentication is not configured on this deployment." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
 

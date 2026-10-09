@@ -17,7 +17,9 @@ ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN mkdir -p public && pnpm build
+# Dependencies were installed in the deps stage with explicit script approvals.
+# Invoke Next directly so Corepack/pnpm does not trigger a second install in this stage.
+RUN mkdir -p public && ./node_modules/.bin/next build
 
 FROM base AS runner
 ENV NODE_ENV=production

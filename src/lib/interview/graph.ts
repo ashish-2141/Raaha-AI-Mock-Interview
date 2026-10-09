@@ -23,6 +23,8 @@ const EvaluationRecordSchema = z.object({
 
 export const InterviewState = new StateSchema({
   interviewId: z.uuid(),
+  collegeId: z.string().nullable(),
+  consentAcceptedAtMs: z.number().int().min(0).nullable(),
   turnNumber: z.number().int().min(0),
   branch: z.string(),
   role: z.string(),

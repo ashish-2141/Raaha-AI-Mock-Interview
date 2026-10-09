@@ -1,9 +1,21 @@
 import { advanceInterview } from "../interview/graph";
 import type { VoiceStartInput } from "./types";
 
-export function buildInitialVoiceState(input: VoiceStartInput) {
+type VoiceSessionMetadata = {
+  collegeId: string | null;
+  consentAcceptedAtMs: number | null;
+};
+
+type VoiceSessionSeed = Pick<VoiceStartInput, "interviewId" | "branch" | "role" | "difficultyScore" | "resumeProjects">;
+
+export function buildInitialVoiceState(
+  input: VoiceSessionSeed,
+  metadata: VoiceSessionMetadata = { collegeId: null, consentAcceptedAtMs: null },
+) {
   return {
     interviewId: input.interviewId,
+    collegeId: metadata.collegeId,
+    consentAcceptedAtMs: metadata.consentAcceptedAtMs,
     turnNumber: 0,
     branch: input.branch,
     role: input.role,
@@ -25,8 +37,11 @@ export function buildInitialVoiceState(input: VoiceStartInput) {
   };
 }
 
-export async function createInitialVoiceTurn(input: VoiceStartInput) {
-  return advanceInterview(buildInitialVoiceState(input));
+export async function createInitialVoiceTurn(
+  input: VoiceStartInput,
+  metadata: VoiceSessionMetadata,
+) {
+  return advanceInterview(buildInitialVoiceState(input, metadata));
 }
 
 export function buildLocalFallbackQuestion(role: string, branch: string) {

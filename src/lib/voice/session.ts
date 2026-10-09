@@ -1,4 +1,5 @@
 import { getRedis } from "@/lib/interview/redis";
+import { indexKey } from "@/lib/dashboard/data";
 import type { InterviewState } from "@/lib/interview/graph";
 
 const TTL_SECONDS = 60 * 60 * 24;
@@ -21,6 +22,15 @@ export async function saveVoiceSession(
     state: JSON.stringify(state),
   });
   await redis.expire(key(interviewId), TTL_SECONDS);
+
+  // Only consented sessions explicitly associated by the server with a pilot college are indexed.
+  const collegeId = state.collegeId;
+  const consentAcceptedAtMs = state.consentAcceptedAtMs;
+  if (typeof collegeId === "string" && collegeId && typeof consentAcceptedAtMs === "number") {
+    const cohortKey = indexKey(collegeId);
+    await redis.sAdd(cohortKey, interviewId);
+    await redis.expire(cohortKey, TTL_SECONDS);
+  }
 }
 
 export async function loadVoiceSession(ownerId: string, interviewId: string) {
@@ -36,9 +46,11 @@ export async function loadVoiceSession(ownerId: string, interviewId: string) {
   if (storedOwnerId !== ownerId) return { unauthorized: true as const };
 
   const stored = JSON.parse(value) as Record<string, unknown>;
-  // Migrate sessions created before fair scoring was introduced.
+  // Migrate sessions created before fair scoring and pilot cohorts were introduced.
   const state = {
     ...stored,
+    collegeId: typeof stored.collegeId === "string" ? stored.collegeId : null,
+    consentAcceptedAtMs: typeof stored.consentAcceptedAtMs === "number" ? stored.consentAcceptedAtMs : null,
     answerHistory: Array.isArray(stored.answerHistory) ? stored.answerHistory : [],
     lastQuestionAtMs: typeof stored.lastQuestionAtMs === "number" ? stored.lastQuestionAtMs : 0,
     lastResponseDurationMs: typeof stored.lastResponseDurationMs === "number" ? stored.lastResponseDurationMs : 0,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AiInterviewQuestionSchema,
   buildInterviewQuestionInput,
+  requestAiInterviewQuestion,
   type AiQuestionContext,
 } from "../src/lib/interview/ai-question";
 
@@ -54,6 +55,21 @@ describe("opt-in AI interview question context", () => {
     expect(parsed.resumeProjects).toHaveLength(10);
     expect(parsed.resumeProjects[0]?.techStack).toHaveLength(15);
     expect(parsed.resumeProjects[0]?.summary.length).toBe(800);
+  });
+
+  it("does not call a model unless the explicit enable flag is true", async () => {
+    const previousEnabled = process.env.RAAHA_AI_INTERVIEW_ENABLED;
+    const previousKey = process.env.OPENAI_API_KEY;
+    process.env.RAAHA_AI_INTERVIEW_ENABLED = "false";
+    process.env.OPENAI_API_KEY = "unused-test-key";
+    try {
+      await expect(requestAiInterviewQuestion(context)).resolves.toBeNull();
+    } finally {
+      if (previousEnabled === undefined) delete process.env.RAAHA_AI_INTERVIEW_ENABLED;
+      else process.env.RAAHA_AI_INTERVIEW_ENABLED = previousEnabled;
+      if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = previousKey;
+    }
   });
 
   it("validates a single concise question rather than accepting arbitrary provider output", () => {

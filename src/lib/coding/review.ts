@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
-import { recordModelUsage } from "@/lib/ops/metrics";
+import { recordModelUsage } from "../ops/metrics";
 
 export const AiCodeReviewSchema = z.object({
   summary: z.string().trim().min(10).max(300),

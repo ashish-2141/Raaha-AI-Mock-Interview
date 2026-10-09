@@ -6,6 +6,8 @@ function base(lastAnswer: string, history: string[] = [], concepts: string[] = [
     interviewId: "00000000-0000-7000-8000-000000000001",
     collegeId: null,
     consentAcceptedAtMs: null,
+    collegeId: null,
+    consentAcceptedAtMs: null,
     turnNumber: history.length,
     branch: "CSE",
     role: "Junior Backend Developer",

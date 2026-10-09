@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { advanceInterview } from "@/lib/interview/graph";
 import { loadVoiceSession, saveVoiceSession } from "@/lib/voice/session";
+import { recordApiMetric } from "@/lib/ops/metrics";
 
 const RequestSchema = z.object({
   interviewId: z.uuid(),
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user) {
+    await recordApiMetric("/api/interview/evaluate", 401, startedAt);
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
@@ -26,9 +28,11 @@ export async function POST(request: Request) {
     const session = await loadVoiceSession(data.user.id, body.interviewId);
 
     if (!session) {
+      await recordApiMetric("/api/interview/evaluate", 404, startedAt);
       return NextResponse.json({ error: "Interview session not found." }, { status: 404 });
     }
     if (session.unauthorized) {
+      await recordApiMetric("/api/interview/evaluate", 403, startedAt);
       return NextResponse.json({ error: "Interview session is not owned by this account." }, { status: 403 });
     }
 
@@ -37,6 +41,7 @@ export async function POST(request: Request) {
       lastAnswer: body.answer,
     });
     await saveVoiceSession(data.user.id, body.interviewId, nextState);
+    await recordApiMetric("/api/interview/evaluate", 200, startedAt);
 
     return NextResponse.json({
       interviewId: body.interviewId,
@@ -58,6 +63,7 @@ export async function POST(request: Request) {
       userId: data.user.id,
     });
   } catch (error) {
+    await recordApiMetric("/api/interview/evaluate", 422, startedAt);
     const message = error instanceof Error ? error.message : "Evaluation failed.";
     return NextResponse.json({ error: message }, { status: 422 });
   }

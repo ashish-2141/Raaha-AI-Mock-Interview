@@ -133,8 +133,8 @@ function escapeRegExp(value: string): string {
 }
 
 function markerMatches(text: string, marker: string): boolean {
-  const phrase = escapeRegExp(marker).replace(/\\\s+/g, "\\s+");
-  return new RegExp(`(?:^|[^a-z0-9])${phrase}(?:$|[^a-z0-9])`, "i").test(text);
+  const phrase = escapeRegExp(marker).replace(/\s+/g, "\\s+");
+  return new RegExp(\`(?:^|[^a-z0-9])\${phrase}(?:$|[^a-z0-9])\`, "i").test(text);
 }
 
 function countMatches(text: string, markers: string[]): number {

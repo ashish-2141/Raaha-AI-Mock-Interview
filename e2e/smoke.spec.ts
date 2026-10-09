@@ -46,5 +46,6 @@ test("live coding page loads a challenge without exposing hidden cases", async (
   await expect(page.getByRole("heading", { name: "Live coding round" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Two Sum" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Run hidden tests" })).toBeVisible();
+  await expect(page.getByRole("checkbox")).not.toBeChecked();
   await expect(page.getByText("Given an integer array nums and an integer target", { exact: false })).toBeVisible();
 });

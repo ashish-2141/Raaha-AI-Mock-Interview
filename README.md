@@ -78,3 +78,9 @@ curl -fsS http://127.0.0.1:3000/api/health
 ```
 
 Do not commit the `.env` file. The public Supabase values are passed as Docker build arguments because Next.js embeds `NEXT_PUBLIC_*` values into the browser bundle. Server secrets remain runtime environment variables. The deployment is not considered production-accepted until the actual host, URL, health check, TPO mapping, load test and consented 10-student pilot are verified.
+
+## Render deployment setup
+
+The repository also includes `render.yaml` for Render Blueprints. It creates a Next.js Docker web service and private, persistent Redis service in Singapore, and waits for GitHub checks before automatic deploys. These use paid service plans. Review the current Render price shown by the dashboard before approving resource creation.
+
+For the launch sequence, secret inputs, TPO mapping, privacy checks and real pilot steps, follow [the Render launch checklist](docs/RENDER_LAUNCH_CHECKLIST.md). The first deployment requires a Render account connected to this GitHub repository and your Supabase/OpenAI secrets. The repository itself does not confirm that the services have been provisioned or that a public URL is live.

@@ -17,6 +17,9 @@ jobs:
       - run: pnpm biome format --write .
       - run: pnpm check
       - run: pnpm build
+      - name: Validate Render Blueprint YAML
+        run: |
+          ruby -e 'require "yaml"; YAML.safe_load_file("render.yaml", aliases: true); puts "Render Blueprint YAML syntax OK"'
       - name: Validate Docker Compose configuration
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://supabase.example.invalid

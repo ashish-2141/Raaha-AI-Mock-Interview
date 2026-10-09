@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getCodingChallenge } from "@/lib/coding/challenges";
 import { executeCodingChallenge } from "@/lib/coding/sandbox";
 import { CodingExecutionRequestSchema } from "@/lib/coding/types";
@@ -10,6 +11,13 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const startedAt = performance.now();
+  if (!isSupabaseConfigured()) {
+    await recordApiMetric("/api/coding/execute", 503, startedAt);
+    return NextResponse.json(
+      { error: "Supabase authentication is not configured on this deployment." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {

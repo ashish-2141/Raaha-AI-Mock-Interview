@@ -37,6 +37,7 @@ type VoicePayload = {
   latencyMs: number;
   mode: "adaptive" | "fallback";
   interviewId: string;
+  pilotCohort?: boolean;
 };
 
 const INTERVIEW_ID_STORAGE = "raaha.voice.interviewId";
@@ -60,6 +61,8 @@ export default function VoiceInterviewPage() {
   const [status, setStatus] = useState<"idle" | "starting" | "listening" | "thinking" | "error">("idle");
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [difficulty, setDifficulty] = useState(3);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [pilotCode, setPilotCode] = useState("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const startedRef = useRef(false);
 
@@ -127,13 +130,15 @@ export default function VoiceInterviewPage() {
       const payload = (await response.json()) as VoicePayload;
       const roundLatency = Math.round(performance.now() - startedAt);
       setQuestion(payload.nextQuestion);
-      setLastReply(payload.followUp ? "Follow-up probe selected." : "Next question selected.");
+      setLastReply(payload.qualityScore > 0
+        ? `Answer score: ${payload.qualityScore}/5. ${payload.followUp ? "A follow-up question was selected." : "Next question selected."}`
+        : "Next question selected.");
       setDifficulty(payload.difficultyScore);
       setLatencyMs(payload.latencyMs || roundLatency);
       setStatus("idle");
       speak(payload.nextQuestion);
     } catch {
-      const fallback = `Network is slow. Continue safely with the text question: explain how you would test the answer you just gave.`;
+      const fallback = "Network is slow. Continue safely with the text question: explain how you would test the answer you just gave.";
       setLastReply("Offline-safe fallback used.");
       setQuestion(fallback);
       setLatencyMs(Math.round(performance.now() - startedAt));
@@ -143,6 +148,12 @@ export default function VoiceInterviewPage() {
   }, [interviewId]);
 
   async function startInterview() {
+    if (!consentAccepted) {
+      setStatus("error");
+      setLastReply("Please read and accept the consent notice before starting.");
+      return;
+    }
+
     setStatus("starting");
     try {
       const id = interviewId || crypto.randomUUID();
@@ -155,23 +166,28 @@ export default function VoiceInterviewPage() {
           role: "Junior Backend Developer",
           difficultyScore: 3,
           resumeProjects: [],
+          consentAccepted: true,
+          pilotCode: pilotCode.trim() || undefined,
         }),
       });
 
-      if (!response.ok) throw new Error("Unable to start.");
-      const payload = (await response.json()) as VoicePayload;
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Unable to start.");
+      const payload = body as VoicePayload;
       setInterviewId(id);
       window.localStorage.setItem(INTERVIEW_ID_STORAGE, id);
       setQuestion(payload.nextQuestion);
       setDifficulty(payload.difficultyScore);
       setLatencyMs(payload.latencyMs);
-      setLastReply("Interview started.");
+      setLastReply(payload.pilotCohort
+        ? "Consent recorded. This session is included in the configured college pilot cohort."
+        : "Consent recorded. This session is not assigned to a college pilot cohort.");
       setStatus("idle");
       speak(payload.nextQuestion);
       startedRef.current = true;
-    } catch {
+    } catch (reason) {
       setStatus("error");
-      setLastReply("Could not start the interview. Make sure the API is authenticated and Redis is configured.");
+      setLastReply(reason instanceof Error ? reason.message : "Could not start the interview. Check authentication and server configuration.");
     }
   }
 
@@ -188,20 +204,45 @@ export default function VoiceInterviewPage() {
   }
 
   return (
-    <main style={{ maxWidth: 760, margin: "0 auto", padding: 32 }}>
+    <main style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 48px" }}>
       <h1>Real-time voice interview</h1>
       <p>Speak your answer, hear the next question, or use the text fallback when voice is unavailable.</p>
+
+      <section aria-label="Consent and pilot settings" style={{ border: "1px solid #d8dee8", borderRadius: 12, padding: 16, marginTop: 20 }}>
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, lineHeight: 1.5 }}>
+          <input
+            type="checkbox"
+            checked={consentAccepted}
+            onChange={(event) => setConsentAccepted(event.target.checked)}
+            style={{ marginTop: 5 }}
+          />
+          <span>
+            I consent to processing my interview transcript and scores for feedback. Session data is stored temporarily and expires after 24 hours of inactivity. If I use a college pilot code, my session may contribute to aggregate branch and skill insights. The college dashboard does not show my individual answers or identity.
+          </span>
+        </label>
+        <label style={{ display: "block", marginTop: 14 }}>
+          College pilot code (optional)
+          <input
+            value={pilotCode}
+            onChange={(event) => setPilotCode(event.target.value)}
+            autoComplete="off"
+            maxLength={128}
+            placeholder="Enter the code supplied by your college"
+            style={{ display: "block", width: "100%", boxSizing: "border-box", padding: 10, marginTop: 6 }}
+          />
+        </label>
+      </section>
 
       <section aria-live="polite" style={{ marginTop: 24 }}>
         <strong>Question</strong>
         <p>{question}</p>
         <p>Difficulty: {difficulty}/5</p>
         {latencyMs !== null ? <p>Last response: {latencyMs} ms</p> : null}
-        <p>{lastReply}</p>
+        <p role="status">{lastReply}</p>
       </section>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-        <button onClick={startInterview} disabled={status === "starting"}>
+        <button onClick={startInterview} disabled={status === "starting" || !consentAccepted}>
           {status === "starting" ? "Starting..." : "Start interview"}
         </button>
         <button onClick={startListening} disabled={!interviewId || status === "thinking"}>
@@ -216,7 +257,7 @@ export default function VoiceInterviewPage() {
           value={transcript}
           onChange={(event) => setTranscript(event.target.value)}
           rows={6}
-          style={{ display: "block", width: "100%", marginTop: 8 }}
+          style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 8 }}
           placeholder="Type your answer when voice input is unavailable."
         />
       </label>
@@ -224,9 +265,7 @@ export default function VoiceInterviewPage() {
         Submit text answer
       </button>
 
-      <p role="status" style={{ marginTop: 16 }}>
-        Status: {status}
-      </p>
+      <p role="status" style={{ marginTop: 16 }}>Status: {status}</p>
     </main>
   );
 }

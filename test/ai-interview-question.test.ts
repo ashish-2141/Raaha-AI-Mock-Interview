@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AiInterviewQuestionSchema,
   buildInterviewQuestionInput,
+  isPreviouslyAskedQuestion,
   requestAiInterviewQuestion,
   type AiQuestionContext,
 } from "../src/lib/interview/ai-question";
@@ -55,6 +56,13 @@ describe("opt-in AI interview question context", () => {
     expect(parsed.resumeProjects).toHaveLength(10);
     expect(parsed.resumeProjects[0]?.techStack).toHaveLength(15);
     expect(parsed.resumeProjects[0]?.summary.length).toBe(800);
+  });
+
+  it("rejects exact repeat questions with whitespace/case normalisation", () => {
+    expect(isPreviouslyAskedQuestion("  What is MQTT? ", ["What is MQTT?"])).toBe(true);
+    expect(isPreviouslyAskedQuestion("What is MQTT?", ["What is MQTT?  "])).toBe(true);
+    expect(isPreviouslyAskedQuestion("How does MQTT work?", ["What is MQTT?"])).toBe(false);
+    expect(isPreviouslyAskedQuestion(" ", ["What is MQTT?"])).toBe(false);
   });
 
   it("does not call a model unless the explicit enable flag is true", async () => {

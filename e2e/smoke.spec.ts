@@ -41,6 +41,16 @@ test("resume profile in this tab personalises the interview setup", async ({ pag
   await expect(page.getByText(/Sensor Gateway/)).toBeVisible();
 });
 
+test("protected endpoints return a clear 503 when Supabase is not configured", async ({ page }) => {
+  await page.goto("/");
+  const response = await page.request.post("/api/resumes/parse");
+  expect(response.status()).toBe(503);
+  await expect(page.getByText("Supabase authentication is not configured on this deployment.")).toHaveCount(0);
+  expect(await response.json()).toMatchObject({
+    error: "Supabase authentication is not configured on this deployment.",
+  });
+});
+
 test("live coding page loads a challenge without exposing hidden cases", async ({ page }) => {
   await page.goto("/live-coding");
   await expect(page.getByRole("heading", { name: "Live coding round" })).toBeVisible();

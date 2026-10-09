@@ -7,6 +7,8 @@ export const VoiceStartInputSchema = z.object({
   role: z.string().min(1).max(120),
   difficultyScore: z.number().int().min(1).max(5).default(3),
   resumeProjects: z.array(InterviewProjectSchema).max(15).default([]),
+  consentAccepted: z.literal(true),
+  pilotCode: z.string().trim().min(1).max(128).optional(),
 });
 
 export const VoiceTurnInputSchema = z.object({

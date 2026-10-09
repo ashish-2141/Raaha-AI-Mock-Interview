@@ -112,7 +112,7 @@ const VAGUE_PATTERNS = [
 ];
 
 const PROMPT_INJECTION_PATTERNS = [
-  /\bignore (all|any|the) previous instructions?\b/i,
+  /\bignore (?:all|any|the|your) (?:previous )?instructions?\b/i,
   /\bsystem prompt\b/i,
   /\bdeveloper message\b/i,
   /\breveal (the )?(hidden|correct) answer\b/i,

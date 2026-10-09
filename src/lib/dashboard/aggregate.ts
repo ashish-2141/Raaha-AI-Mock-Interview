@@ -147,9 +147,9 @@ export function buildCollegeDashboardSummary(
     suppressed: false,
     minimumParticipants,
     participantCount: hasSuppressedBranches ? null : participants.size,
-    sessionCount: visibleSessions.length,
-    completedSessions: visibleSessions.filter((session) => session.turnNumber > 0).length,
-    submittedAnswers: visibleEvaluations.length,
+    sessionCount: hasSuppressedBranches ? null : visibleSessions.length,
+    completedSessions: hasSuppressedBranches ? null : visibleSessions.filter((session) => session.turnNumber > 0).length,
+    submittedAnswers: hasSuppressedBranches ? null : visibleEvaluations.length,
     branches,
     weakSkills: allVisibleSkills.filter((skill) => skill.weak).sort((a, b) => a.averageQualityScore - b.averageQualityScore),
     note: hasSuppressedBranches

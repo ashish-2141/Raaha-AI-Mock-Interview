@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { loadCollegeDashboardSummary } from "@/lib/dashboard/data";
 import { recordApiMetric } from "@/lib/ops/metrics";
 
@@ -22,6 +23,13 @@ function getAllowedCollegeId(userId: string): string | null {
 
 export async function GET() {
   const startedAt = performance.now();
+  if (!isSupabaseConfigured()) {
+    await recordApiMetric("/api/college-dashboard/summary", 503, startedAt);
+    return NextResponse.json(
+      { error: "Supabase authentication is not configured on this deployment." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {

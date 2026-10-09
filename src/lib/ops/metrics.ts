@@ -1,4 +1,4 @@
-import { getRedis } from "@/lib/interview/redis";
+import { getRedis } from "../interview/redis";
 
 const EVENTS_KEY = "raaha:ops:events";
 const RETENTION_SECONDS = 60 * 60 * 24 * 7;

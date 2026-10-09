@@ -109,8 +109,10 @@ At that volume, the free deployment is not a suitable capacity claim: it may sle
 - [ ] PostgreSQL persistence and migration/retention path implemented and tested.
 - [ ] Ten consented real resumes checked against human-reviewed reference fields; field error rate <10%.
 - [ ] Real Android weak-network latency test meets the <2 s reply-start target.
-- [ ] Docker integration tests show normal solution success, wrong solution failure, and infinite-loop timeout/cleanup.
-- [ ] Same answer repeated five times varies by no more than one point; bias/injection cases reviewed.
+- [x] Docker integration cases are implemented for a correct solution, incorrect solution, infinite-loop timeout/cleanup, and the absence of a hidden-test runner in the candidate mount.
+- [ ] Latest CI must complete the Docker sandbox integration cases successfully.
+- [x] Automated tests call the same answer five times and confirm the deterministic score is identical; test inputs deliberately exclude candidate name/college metadata and cover an explicit instruction-override attempt.
+- [ ] Run those tests on the latest merged CI and review a human-labelled answer set across varied quality and irrelevant name/college changes. The automated unit tests are not proof of empirical fairness.
 - [ ] Authenticated dashboard load-test output retained for an approved concurrency.
 - [ ] Partner college approved the pilot and ten real students have consented and used the tool.
 - [ ] Measured one-page post-mortem written.

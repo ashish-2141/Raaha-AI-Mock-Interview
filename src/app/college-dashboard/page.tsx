@@ -99,10 +99,10 @@ export default function CollegeDashboardPage() {
           ) : (
             <>
               <section aria-label="Cohort totals" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 24 }}>
-                <div style={panelStyle}><p style={{ margin: 0, color: "#627087", fontSize: 13 }}>Consenting participants</p><p style={{ fontSize: 30, margin: "6px 0 0", fontWeight: 700 }}>{summary.participantCount}</p></div>
-                <div style={panelStyle}><p style={{ margin: 0, color: "#627087", fontSize: 13 }}>Interview sessions</p><p style={{ fontSize: 30, margin: "6px 0 0", fontWeight: 700 }}>{summary.sessionCount}</p></div>
-                <div style={panelStyle}><p style={{ margin: 0, color: "#627087", fontSize: 13 }}>Sessions with answers</p><p style={{ fontSize: 30, margin: "6px 0 0", fontWeight: 700 }}>{summary.completedSessions}</p></div>
-                <div style={panelStyle}><p style={{ margin: 0, color: "#627087", fontSize: 13 }}>Answers evaluated</p><p style={{ fontSize: 30, margin: "6px 0 0", fontWeight: 700 }}>{summary.submittedAnswers}</p></div>
+                <div style={panelStyle}><p style={{ margin: 0, color: "#627087", fontSize: 13 }}>Consenting participants</p><p style={{ fontSize: 30, margin: "6px 0 0", fontWeight: 700 }}>{summary.participantCount ?? "Hidden"}</p></div>
+                <div style={panelStyle}><p style={{ margin: 0, color: "#627087", fontSize: 13 }}>Interview sessions</p><p style={{ fontSize: 30, margin: "6px 0 0", fontWeight: 700 }}>{summary.sessionCount ?? "Hidden"}</p></div>
+                <div style={panelStyle}><p style={{ margin: 0, color: "#627087", fontSize: 13 }}>Sessions with answers</p><p style={{ fontSize: 30, margin: "6px 0 0", fontWeight: 700 }}>{summary.completedSessions ?? "Hidden"}</p></div>
+                <div style={panelStyle}><p style={{ margin: 0, color: "#627087", fontSize: 13 }}>Answers evaluated</p><p style={{ fontSize: 30, margin: "6px 0 0", fontWeight: 700 }}>{summary.submittedAnswers ?? "Hidden"}</p></div>
               </section>
 
               <section style={{ ...panelStyle, marginBottom: 20 }}>

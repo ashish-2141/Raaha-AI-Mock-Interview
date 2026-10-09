@@ -1,6 +1,7 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import { SANDBOX_POLICY, normalizeError, validateCandidateSource } from "./policy";
@@ -23,6 +24,12 @@ export type SandboxResult = {
   isolated: boolean;
   networkDisabled: boolean;
   review: string;
+};
+
+type SandboxExecError = Error & {
+  code?: string | number;
+  killed?: boolean;
+  signal?: string;
 };
 
 function buildRunner(challenge: CodingChallenge): string {
@@ -53,19 +60,23 @@ function buildRunner(challenge: CodingChallenge): string {
   ].join("\n");
 }
 
-function buildDockerArgs(workdir: string): string[] {
-  const image = process.env.RAAHA_SANDBOX_IMAGE ?? "node:24-alpine";
+function buildDockerCreateArgs(workdir: string, containerName: string): string[] {
+  const image = process.env.RAAHA_SANDBOX_IMAGE ?? "public.ecr.aws/docker/library/node:24-alpine";
   return [
-    "run",
-    "--rm",
+    "create",
+    "--name", containerName,
+    "--init",
     "--network", "none",
     "--memory", SANDBOX_POLICY.memoryMb + "m",
+    "--memory-swap", SANDBOX_POLICY.memoryMb + "m",
     "--cpus", SANDBOX_POLICY.cpuLimit,
     "--pids-limit", String(SANDBOX_POLICY.pidsLimit),
+    "--ulimit", "nofile=64:64",
     "--read-only",
     "--cap-drop", "ALL",
-    "--security-opt", "no-new-privileges",
-    "--tmpfs", "/tmp:rw,nosuid,nodev,size=32m",
+    "--security-opt", "no-new-privileges=true",
+    "--user", "65534:65534",
+    "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=32m,mode=1777",
     "--mount", "type=bind,src=" + workdir + ",dst=/workspace,readonly",
     "--workdir", "/workspace",
     image,
@@ -79,6 +90,18 @@ function buildReview(challenge: CodingChallenge, cases: SandboxCaseResult[]): st
     return "The " + challenge.title + " solution does not pass all hidden tests. Fix correctness and edge cases before optimising.";
   }
   return "All hidden tests passed. Explain the O(n) lookup approach and why it avoids nested scans.";
+}
+
+function describeExecutionFailure(error: unknown): { unavailable: boolean; timedOut: boolean; message: string } {
+  const typed = error as SandboxExecError;
+  const rawMessage = typed instanceof Error ? typed.message : "Sandbox execution failed.";
+  const message = normalizeError(rawMessage);
+  const code = typed && typeof typed.code !== "undefined" ? String(typed.code) : "";
+  const timedOut = code === "ETIMEDOUT" || typed?.killed === true || /timed out|time limit exceeded/i.test(rawMessage);
+  const unavailable =
+    code === "ENOENT" ||
+    /cannot connect to the Docker daemon|error during connect|daemon is not running|no such image|pull access denied|manifest unknown|failed to resolve reference|toomanyrequests|429 too many requests/i.test(rawMessage);
+  return { unavailable, timedOut, message };
 }
 
 export async function executeCodingChallenge(source: string, challenge: CodingChallenge): Promise<SandboxResult> {
@@ -97,13 +120,26 @@ export async function executeCodingChallenge(source: string, challenge: CodingCh
 
   const workdir = await mkdtemp(path.join(tmpdir(), "raaha-sandbox-"));
   const startedAt = Date.now();
+  const containerName = "raaha-sandbox-" + randomUUID();
+  let containerId: string | null = null;
 
   try {
-    await writeFile(path.join(workdir, "solution.mjs"), source, "utf8");
-    await writeFile(path.join(workdir, "runner.mjs"), buildRunner(challenge), "utf8");
+    // The sandbox runs as a non-root user, so the mounted source files must be readable.
+    await chmod(workdir, 0o755);
+    await writeFile(path.join(workdir, "solution.mjs"), source, { encoding: "utf8", mode: 0o644 });
+    await writeFile(path.join(workdir, "runner.mjs"), buildRunner(challenge), { encoding: "utf8", mode: 0o644 });
 
-    const { stdout } = await execFileAsync("docker", buildDockerArgs(workdir), {
-      timeout: SANDBOX_POLICY.timeoutMs + 1_000,
+    const created = await execFileAsync("docker", buildDockerCreateArgs(workdir, containerName), {
+      timeout: 30_000,
+      maxBuffer: 64 * 1024,
+    });
+    containerId = created.stdout.trim();
+    if (!containerId) throw new Error("Docker did not return a sandbox container ID.");
+
+    // Attach timeout applies to the client command; finally always force-removes the
+    // named container so an infinite loop cannot keep running after the request ends.
+    const { stdout } = await execFileAsync("docker", ["start", "--attach", containerId], {
+      timeout: SANDBOX_POLICY.timeoutMs + 2_000,
       maxBuffer: 64 * 1024,
     });
 
@@ -121,21 +157,28 @@ export async function executeCodingChallenge(source: string, challenge: CodingCh
       review: buildReview(challenge, cases),
     };
   } catch (error) {
-    const message = normalizeError(error instanceof Error ? error.message : "Sandbox execution failed.");
-    const unavailable = /ENOENT|Cannot connect|daemon|docker|image/i.test(message);
-
+    const failure = describeExecutionFailure(error);
     return {
-      status: unavailable ? "unavailable" : "failed",
+      status: failure.unavailable ? "unavailable" : "failed",
       cases: [],
       durationMs: Date.now() - startedAt,
       provider: "docker",
       isolated: true,
       networkDisabled: true,
-      review: unavailable
-        ? "Docker sandbox unavailable in this host. Runtime acceptance requires Docker plus the configured sandbox image."
-        : message,
+      review: failure.timedOut
+        ? "Execution exceeded the time limit. The sandbox container is forcibly removed."
+        : failure.unavailable
+          ? "Docker sandbox unavailable in this host or its sandbox image could not be loaded. Runtime acceptance requires Docker plus the configured sandbox image."
+          : failure.message,
     };
   } finally {
+    if (containerId) {
+      try {
+        await execFileAsync("docker", ["rm", "--force", containerId], { timeout: 5_000, maxBuffer: 16 * 1024 });
+      } catch {
+        // Do not include candidate source or container output in logs. Docker cleanup is best-effort.
+      }
+    }
     await rm(workdir, { recursive: true, force: true });
   }
 }

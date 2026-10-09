@@ -37,11 +37,11 @@ describe("adaptive interview engine", () => {
     expect(result.questionHistory).toContain(result.nextQuestion);
   });
 
-  it("asks a deeper follow-up after a vague answer", async () => {
+  it("asks a fundamentals-first follow-up after a vague answer lowers difficulty", async () => {
     const previous = "Explain caching.";
     const result = await advanceInterview(base("I used Redis.", [previous], ["caching"], 3));
     expect(result.followUp).toBe(true);
-    expect(result.nextQuestion.toLowerCase()).toContain("go deeper");
+    expect(result.nextQuestion.toLowerCase()).toContain("basics");
     expect(result.answerHistory).toContain("I used Redis.");
   });
 

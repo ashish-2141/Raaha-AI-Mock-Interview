@@ -46,11 +46,7 @@ test("voice recognition submits a turn using the newly created interview ID", as
   let receivedTurn: Record<string, unknown> | null = null;
 
   await page.addInitScript(() => {
-    const browser = window as unknown as {
-      SpeechRecognition: unknown;
-      SpeechSynthesisUtterance: new (text: string) => unknown;
-      speechSynthesis: { cancel: () => void; speak: (utterance: unknown) => void };
-    };
+    const browser = window as unknown as { SpeechRecognition: unknown };
     class MockRecognition {
       continuous = false;
       interimResults = false;
@@ -71,10 +67,8 @@ test("voice recognition submits a turn using the newly created interview ID", as
       abort() {}
     }
     browser.SpeechRecognition = MockRecognition;
-    browser.SpeechSynthesisUtterance = class {
-      constructor(_text: string) {}
-    };
-    browser.speechSynthesis = { cancel() {}, speak() {} };
+    window.speechSynthesis.cancel = () => {};
+    window.speechSynthesis.speak = () => {};
   });
 
   await page.route("**/api/interview/voice/start", async (route) => {

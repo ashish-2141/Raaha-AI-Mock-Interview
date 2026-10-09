@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildInitialVoiceState, buildLocalFallbackQuestion, buildLocalFallbackReply } from "../src/lib/voice/protocol";
+import { VoiceStartInputSchema } from "../src/lib/voice/types";
 
 const input = {
   interviewId: "00000000-0000-7000-8000-000000000001",
@@ -10,6 +11,10 @@ const input = {
 };
 
 describe("real-time voice interview protocol", () => {
+  it("requires explicit consent before a voice interview starts", () => {
+    expect(VoiceStartInputSchema.safeParse(input).success).toBe(false);
+    expect(VoiceStartInputSchema.safeParse({ ...input, consentAccepted: true }).success).toBe(true);
+  });
   it("creates a serializable interview state for voice start", () => {
     const state = buildInitialVoiceState(input);
     expect(state.interviewId).toBe(input.interviewId);

@@ -7,6 +7,7 @@ export const CodingExecutionRequestSchema = z.object({
   challengeId: z.string().min(1).max(80),
   language: CodingLanguageSchema,
   source: z.string().min(1).max(20_000),
+  aiReviewConsentAccepted: z.boolean().optional().default(false),
 });
 
 export const CodingCaseResultSchema = z.object({

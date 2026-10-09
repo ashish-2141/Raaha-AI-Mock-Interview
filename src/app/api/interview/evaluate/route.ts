@@ -6,15 +6,17 @@ import { loadVoiceSession, saveVoiceSession } from "@/lib/voice/session";
 
 const RequestSchema = z.object({
   interviewId: z.uuid(),
-  lastAnswer: z.string().trim().min(1).max(5000),
+  answer: z.string().trim().min(1).max(5000),
 });
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const startedAt = performance.now();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
+
   if (error || !data.user) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
@@ -32,17 +34,17 @@ export async function POST(request: Request) {
 
     const nextState = await advanceInterview({
       ...session.state,
-      lastAnswer: body.lastAnswer,
+      lastAnswer: body.answer,
     });
     await saveVoiceSession(data.user.id, body.interviewId, nextState);
 
     return NextResponse.json({
       interviewId: body.interviewId,
       turnNumber: nextState.turnNumber,
-      difficultyScore: nextState.difficultyScore,
       nextQuestion: nextState.nextQuestion,
-      qualityScore: nextState.qualityScore,
+      difficultyScore: nextState.difficultyScore,
       followUp: nextState.followUp,
+      qualityScore: nextState.qualityScore,
       scoreBreakdown: nextState.scoreBreakdown,
       antiCheat: {
         flags: nextState.antiCheatFlags,
@@ -51,10 +53,12 @@ export async function POST(request: Request) {
           ? "Flagged for human review only. Integrity flags do not directly reduce the candidate score."
           : "No automated integrity signal detected. This is not proof that an answer is authentic.",
       },
+      latencyMs: Math.round(performance.now() - startedAt),
+      mode: "adaptive",
       userId: data.user.id,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Interview turn failed.";
+    const message = error instanceof Error ? error.message : "Evaluation failed.";
     return NextResponse.json({ error: message }, { status: 422 });
   }
 }

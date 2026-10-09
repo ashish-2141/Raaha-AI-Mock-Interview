@@ -4,6 +4,7 @@ import { advanceInterview } from "@/lib/interview/graph";
 import { buildLocalFallbackReply } from "@/lib/voice/protocol";
 import { loadVoiceSession, saveVoiceSession } from "@/lib/voice/session";
 import { VoiceTurnInputSchema } from "@/lib/voice/types";
+import { recordApiMetric } from "@/lib/ops/metrics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user) {
+    await recordApiMetric("/api/interview/voice/turn", 401, startedAt);
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
@@ -22,9 +24,11 @@ export async function POST(request: Request) {
     const session = await loadVoiceSession(data.user.id, input.interviewId);
 
     if (!session) {
+      await recordApiMetric("/api/interview/voice/turn", 404, startedAt);
       return NextResponse.json({ error: "Interview session not found." }, { status: 404 });
     }
     if (session.unauthorized) {
+      await recordApiMetric("/api/interview/voice/turn", 403, startedAt);
       return NextResponse.json({ error: "Interview session is not owned by this account." }, { status: 403 });
     }
 
@@ -34,6 +38,7 @@ export async function POST(request: Request) {
     });
 
     await saveVoiceSession(data.user.id, input.interviewId, nextState);
+    await recordApiMetric("/api/interview/voice/turn", 200, startedAt);
 
     return NextResponse.json({
       interviewId: input.interviewId,
@@ -55,6 +60,7 @@ export async function POST(request: Request) {
       userId: data.user.id,
     });
   } catch (error) {
+    await recordApiMetric("/api/interview/voice/turn", 422, startedAt);
     const fallback = buildLocalFallbackReply("voice interview", "general");
     const message = error instanceof Error ? error.message : fallback.nextQuestion;
     return NextResponse.json({ error: message }, { status: 422 });

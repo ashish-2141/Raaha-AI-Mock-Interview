@@ -145,7 +145,7 @@ export async function executeCodingChallenge(
     containerId = created.stdout.trim();
     if (!containerId) throw new Error("Docker did not return a sandbox container ID.");
 
-    await execFileAsync("docker", ["start", "--detach", containerId], {
+    await execFileAsync("docker", ["start", containerId], {
       timeout: 10_000,
       maxBuffer: 16 * 1024,
     });

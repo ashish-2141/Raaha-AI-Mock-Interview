@@ -36,7 +36,7 @@ Prisma uses the published 7.10.0 release in the current CI-compatible dependency
 
 ## Connected user journey and design review
 
-The home page links to sign-in, resume parsing, voice interview, live coding, and the TPO dashboard. After a successful resume parse, the validated profile is kept in this browser tab's `sessionStorage`; the voice interview reads its branch and projects and lets the user edit the target role before starting. The profile is not copied to server storage by this hand-off.
+The home page links to sign-in/account registration, resume parsing, voice interview, live coding, and the TPO dashboard. After a successful resume parse, the validated profile is kept in this browser tab's `sessionStorage`; the voice interview reads its branch and projects and lets the user edit the target role before starting. Starting the interview sends the chosen branch, role and project context to the authenticated API, where interview state is stored in Redis with a 24-hour inactivity TTL. The raw PDF is not saved by this browser hand-off.
 
 Read [System Design and Stack Trade-offs](SYSTEM_DESIGN.md) for the alternatives considered, explicit current-versus-target architecture, estimated token costs, latency measurement plan and 1,000-student/day capacity assumptions. It is a draft awaiting manager approval, not an approved architecture decision.
 

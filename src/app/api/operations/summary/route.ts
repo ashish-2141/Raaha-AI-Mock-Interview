@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getOperationsSummary } from "@/lib/ops/metrics";
 
 export const runtime = "nodejs";
@@ -14,6 +15,12 @@ function isOperationsAdmin(userId: string): boolean {
 }
 
 export async function GET() {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      { error: "Supabase authentication is not configured on this deployment." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {

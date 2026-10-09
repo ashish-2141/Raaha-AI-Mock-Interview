@@ -19,10 +19,10 @@ function parseEvaluation(value: unknown): DashboardEvaluation | null {
   if (!isRecord(value) || typeof value.concept !== "string" || typeof value.qualityScore !== "number") {
     return null;
   }
-  if (!isRecord(value.scoreBreakdown)) return null;
-  const fields = ["evidence", "reasoning", "specificity", "clarity", "total"] as const;
-  if (!fields.every((field) => typeof value.scoreBreakdown?.[field] === "number")) return null;
   const breakdown = value.scoreBreakdown;
+  if (!isRecord(breakdown)) return null;
+  const fields = ["evidence", "reasoning", "specificity", "clarity", "total"] as const;
+  if (!fields.every((field) => typeof breakdown[field] === "number")) return null;
   return {
     concept: value.concept || "core-engineering",
     qualityScore: value.qualityScore,

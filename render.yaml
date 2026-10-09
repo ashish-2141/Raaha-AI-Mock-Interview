@@ -1,6 +1,6 @@
 services:
   - type: keyvalue
-    name: raaha-redis
+    name: raaha-redis-free
     region: singapore
     plan: free
     ipAllowList: []
@@ -8,7 +8,7 @@ services:
     persistenceMode: off
 
   - type: web
-    name: raaha-ai-mock-interview
+    name: raaha-ai-mock-interview-free
     runtime: docker
     region: singapore
     plan: free
@@ -31,5 +31,5 @@ services:
       - key: REDIS_URL
         fromService:
           type: keyvalue
-          name: raaha-redis
+          name: raaha-redis-free
           property: connectionString

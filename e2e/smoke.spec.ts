@@ -41,6 +41,90 @@ test("resume profile in this tab personalises the interview setup", async ({ pag
   await expect(page.getByText(/Sensor Gateway/)).toBeVisible();
 });
 
+test("voice recognition submits a turn using the newly created interview ID", async ({ page }) => {
+  const interviewId = "00000000-0000-7000-8000-000000000001";
+  let receivedTurn: Record<string, unknown> | null = null;
+
+  await page.addInitScript(() => {
+    const browser = window as unknown as {
+      SpeechRecognition: unknown;
+      SpeechSynthesisUtterance: new (text: string) => unknown;
+      speechSynthesis: { cancel: () => void; speak: (utterance: unknown) => void };
+    };
+    class MockRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "en-IN";
+      onend: (() => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+      onresult: ((event: unknown) => void) | null = null;
+
+      start() {
+        window.setTimeout(() => {
+          this.onresult?.({
+            results: [[{ transcript: "First I would validate the API request and test the database query." }]],
+          });
+          this.onend?.();
+        }, 0);
+      }
+      stop() {}
+      abort() {}
+    }
+    browser.SpeechRecognition = MockRecognition;
+    browser.SpeechSynthesisUtterance = class {
+      constructor(_text: string) {}
+    };
+    browser.speechSynthesis = { cancel() {}, speak() {} };
+  });
+
+  await page.route("**/api/interview/voice/start", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        interviewId,
+        turnNumber: 0,
+        nextQuestion: "First question",
+        difficultyScore: 3,
+        followUp: false,
+        qualityScore: 0,
+        latencyMs: 30,
+        mode: "adaptive",
+        pilotCohort: false,
+      }),
+    });
+  });
+
+  await page.route("**/api/interview/voice/turn", async (route) => {
+    receivedTurn = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        interviewId,
+        turnNumber: 1,
+        nextQuestion: "Follow-up question received",
+        difficultyScore: 4,
+        followUp: true,
+        qualityScore: 4,
+        latencyMs: 45,
+        mode: "adaptive",
+      }),
+    });
+  });
+
+  await page.goto("/voice-interview");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Start interview" }).click();
+  await expect(page.getByText("First question")).toBeVisible();
+  await page.getByRole("button", { name: "Speak answer" }).click();
+  await expect(page.getByText("Follow-up question received")).toBeVisible();
+  expect(receivedTurn).toMatchObject({
+    interviewId,
+    transcript: "First I would validate the API request and test the database query.",
+  });
+});
+
 test("protected endpoints return a clear 503 when Supabase is not configured", async ({ page }) => {
   await page.goto("/");
   const response = await page.request.post("/api/resumes/parse");

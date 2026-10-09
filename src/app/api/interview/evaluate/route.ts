@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { advanceInterview } from "@/lib/interview/graph";
 import { loadVoiceSession, saveVoiceSession } from "@/lib/voice/session";
 import { recordApiMetric } from "@/lib/ops/metrics";
@@ -15,6 +16,13 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const startedAt = performance.now();
+  if (!isSupabaseConfigured()) {
+    await recordApiMetric("/api/interview/evaluate", 503, startedAt);
+    return NextResponse.json(
+      { error: "Supabase authentication is not configured on this deployment." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
 

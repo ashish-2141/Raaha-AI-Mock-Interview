@@ -7,10 +7,10 @@
 
 ## 1. Current implementation versus target
 
-The current application uses Next.js/TypeScript, Supabase Auth, a Zod-validated OpenAI Responses call for resume parsing, browser Web Speech APIs for voice input/output, a deterministic LangGraph interview workflow, Redis for short-lived interview state, and a Docker sandbox for coding execution.
+The current application uses Next.js/TypeScript, Supabase Auth, a Zod-validated OpenAI Responses call for resume parsing, browser Web Speech APIs for voice input/output, a deterministic LangGraph interview workflow with optional model-backed question generation, Redis for short-lived interview state, and a Docker sandbox for coding execution with optional model-backed code review.
 
 Important limitations:
-- Interview question selection and scoring are deterministic rules and a question bank today. The text/voice turn path does **not** call an LLM to generate every question or evaluate every response semantically.
+- By default, interview question selection and scoring use deterministic rules and a question bank. Setting `RAAHA_AI_INTERVIEW_ENABLED=true` explicitly enables schema-constrained OpenAI question generation; the score remains deterministic. The optional code review is also off by default and requires both `RAAHA_AI_CODE_REVIEW_ENABLED=true` and participant consent.
 - Resume profiles are schema-validated, but durable PostgreSQL persistence is not yet wired into the user journey.
 - The free Render staging deployment has ephemeral Key Value storage and is not production or pilot infrastructure.
 - Browser SpeechRecognition/SpeechSynthesis availability, language quality and latency vary by browser/device/network.
@@ -51,16 +51,16 @@ Planning envelope, not a measurement: 5,000 input tokens and 700 output tokens p
 
 Actual token counts must come from `response.usage`; this repository already records token usage. Set the `RAAHA_OPENAI_*_USD_PER_1M` environment variables to the approved rates so runtime summaries can estimate costs. An unknown cost is not zero.
 
-### Future target: add AI-generated interview turns
+### Opt-in target mode: AI-generated interview turns
 
-This is a planning scenario, **not the current implementation**. Assume eight LLM turns averaging 1,500 input and 200 output tokens each, plus one resume parse using the envelope above:
+This mode is implemented but remains disabled in the zero-spend staging configuration. For budgeting, assume eight LLM turns averaging 1,500 input and 200 output tokens each, plus one resume parse using the envelope above:
 
 - Interview turns: 12,000 input and 1,600 output tokens = $0.060 + $0.048 = $0.108.
 - Resume parse: 5,000 input and 700 output tokens = $0.025 + $0.021 = $0.046.
 - **Illustrative combined total: $0.154 per interview with one resume parse.**
 - At 1,000 such interviews/day: about $154/day or $4,620 per 30-day month, before non-token costs.
 
-The current heuristic interview turn itself makes no model call, so do not report the future scenario as current spend. The model-turn token envelope must be measured from an approved pilot before presenting a reliable per-interview figure.
+The current default heuristic interview turn makes no model call, so do not report the opt-in scenario as current spend. If AI code review is also enabled and the candidate consents, include its input/output tokens in the budget. The model-turn token envelope must be measured from an approved pilot before presenting a reliable per-interview figure.
 
 ## 4. Latency targets and measurement plan
 

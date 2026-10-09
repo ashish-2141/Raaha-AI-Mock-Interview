@@ -1,69 +1,42 @@
-# Day 7: College dashboard acceptance plan
+# Day 7: College dashboard acceptance and pilot readiness
 
-## Status
-This is a planning and acceptance artifact, not proof of a production deployment or real-student pilot.
+## Implemented in this branch
 
-Repository: https://github.com/ashish-2141/Raaha-AI-Mock-Interview
-Week 1 plan: College dashboard by Friday, with cohort weak areas by branch and skill, monitoring/logs/cost tracking, load test, then a pilot with 10 students.
+- Authenticated `/college-dashboard` page and `GET /api/college-dashboard/summary` endpoint.
+- TPO account-to-college authorization from server-side `RAAHA_COLLEGE_DASHBOARD_ACCESS_JSON`. The client cannot choose the college ID.
+- Consent required before a voice interview starts.
+- Optional pilot code validated on the server. Cohort association is assigned from `RAAHA_PILOT_COLLEGE_ID`, not from a client-supplied college field.
+- Redis index for sessions enrolled in a pilot cohort.
+- Aggregate metrics by branch and skill, including average score and weak-skill flags.
+- Overall cohort suppression below five distinct consenting participants. Individual branch and skill group suppression below five distinct participants.
+- Dashboard responses omit candidate IDs, individual answers and raw session records.
+- Redis-based operational request metrics, structured application logs, and model token/cost accounting for resume parsing.
+- Operator-only `GET /api/operations/summary` endpoint.
+- Authenticated TPO dashboard load-test harness: `pnpm loadtest:dashboard`.
 
-## Verified code state at review time
-- PR #1 modern-stack scaffold: merged.
-- PR #2 sign-in and resume parsing: merged.
-- PR #3 adaptive interview engine: merged.
-- PR #4 voice interview slice: merged.
-- PR #5 secure live-coding round: merged.
-- PR #6 fair scoring and anti-cheat signals: open, mergeable, not yet on main.
-- The main landing page remains an architecture scaffold.
-- No production deployment URL or partner-college dashboard access is established by repository evidence.
+## Required server configuration
 
-## Dashboard minimum viable scope
-1. TPO authentication and college-scoped access.
-2. Cohort summaries by branch and skill, not candidate-level answer disclosure by default.
-3. Clear aggregate sample sizes and suppress small groups to avoid identifying students.
-4. Data freshness and session count.
-5. Error rate, latency, and model/provider cost indicators.
-6. Accessible mobile layout and loading/empty/error states.
-7. Export only aggregated data under the college's permissions.
+- `RAAHA_PILOT_COLLEGE_ID`: internal college identifier.
+- `RAAHA_PILOT_INVITE_CODE`: secret invite code shared only with enrolled participants.
+- `RAAHA_COLLEGE_DASHBOARD_ACCESS_JSON`: JSON map of allowed Supabase auth user IDs to internal college IDs.
+- `RAAHA_OPERATIONS_ADMIN_USER_IDS`: comma-separated Supabase auth user IDs allowed to view operational metrics.
+- `RAAHA_OPENAI_INPUT_USD_PER_1M` and `RAAHA_OPENAI_OUTPUT_USD_PER_1M`: token rates in USD per million tokens. Leave blank if rates are not approved. Calls without configured rates are reported as unknown-cost, not free.
 
-## Required integration work
-- Review PR #6 and require CI success before merge.
-- Connect the fair scoring breakdown to the adaptive interview turn pipeline while preserving the existing 1–5 qualityScore contract.
-- Persist evaluation outcomes with ownership/college relationship and strict authorization.
-- Build and test the TPO dashboard against permitted aggregate data.
-- Add operational metrics and structured logs without logging resumes, secrets, tokens, or full candidate answers.
-- Configure deployment secrets through the hosting provider, not committed files.
-- Validate health, auth, resume parsing, adaptive turns, voice fallback, coding sandbox and dashboard on a production-like host.
-- Run a repeatable load test and store the results with test configuration.
-- Invite 10 real students only after consent, privacy notice, access control, and safety checks are in place.
-- Produce the one-page post-mortem only after actual pilot observations are collected.
+Use the same college ID in the pilot configuration and the TPO access mapping. Keep invite codes, Supabase cookies and production URLs/credentials out of source control.
 
-## Pilot record template
-| Field | Value |
-|---|---|
-| Pilot date/window | Pending |
-| Partner college | Pending |
-| Student participants | 0 evidenced |
-| Consent and privacy notice | Pending |
-| Sessions attempted/completed | Pending |
-| Completion rate | Pending |
-| p50/p95 response latency | Pending |
-| Error rate | Pending |
-| Cost per completed session | Pending |
-| Student feedback themes | Pending |
-| Critical bugs | Pending |
-| Decision | Do not claim pilot complete yet |
+## Automated validation
 
-## Release acceptance checklist
-- [ ] PR #6 reviewed and CI green.
-- [ ] Scoring integration tests pass.
-- [ ] College tenant isolation tests pass.
-- [ ] Dashboard empty, populated, loading and error states tested.
-- [ ] Small cohorts are suppressed.
-- [ ] Logging and cost instrumentation verified.
-- [ ] Load-test results recorded.
-- [ ] Production-like deployment URL and health check verified.
-- [ ] 10 real participants complete a consented pilot.
-- [ ] Post-mortem based on observed results.
+The aggregate function has tests for the five-participant privacy threshold, suppressed subgroups and consent/college association. GitHub Actions must pass `pnpm check` and `pnpm build` before merge.
 
-## Release decision
-Not production-ready from the available evidence. The scoring PR, authenticated aggregate dashboard, persistence/authorization, monitoring, deployment, load results and real student pilot remain release gates. Do not substitute synthetic rows or a static prototype for those acceptance criteria.
+The load-test command requires a deployed base URL and an authorised TPO cookie supplied through environment variables. It records request statuses and p50/p95/max latency. Run it only against the deployment and request rate approved for testing. Save the JSON output with the deployment version and test window.
+
+## Still requires real deployment and external access
+
+- Set the production Supabase, Redis and OpenAI configuration in the hosting provider.
+- Configure the pilot college, invite code, TPO access map and operational admin IDs.
+- Deploy the branch to a production-like environment and record its actual URL.
+- Run the authenticated load test and retain the results.
+- Ask a partner college to approve the pilot and invite 10 real students. Obtain their informed consent and confirm the privacy notice before collecting pilot data.
+- Record actual participation, completion rate, latency, errors, cost and feedback. Write the post-mortem from those observations.
+
+Synthetic test fixtures only validate the aggregation function. They do not count as student participation. No live deployment, external APM vendor, or 10-student pilot is claimed by this document.

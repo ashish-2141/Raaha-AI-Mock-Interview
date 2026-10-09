@@ -74,7 +74,7 @@ const QUESTION_BANK: Record<string, string[]> = {
     "Describe how you would work through an experiment that repeatedly fails.",
   ],
   data_science: [
-    "How would you investigate missing values before fitting a predictive model?",
+    "How would you investigate missing values in a dataset before fitting a predictive model?",
     "Explain the difference between correlation and causation using a business example.",
     "How would you select a metric for an imbalanced classification problem?",
     "How would you design a SQL query to compare weekly retention cohorts?",

@@ -1,7 +1,25 @@
 import { StateGraph, StateSchema, START, END } from "@langchain/langgraph";
 import { z } from "zod";
-import { evaluateAnswer } from "./evaluate";
+import { fairEvaluateAnswer } from "./fair-scoring";
 import { buildQuestionHistory, selectNextQuestion } from "./questions";
+
+const ScoreBreakdownSchema = z.object({
+  evidence: z.number().min(0).max(5),
+  reasoning: z.number().min(0).max(5),
+  specificity: z.number().min(0).max(5),
+  clarity: z.number().min(0).max(5),
+  total: z.number().min(0).max(100),
+});
+
+const EvaluationRecordSchema = z.object({
+  concept: z.string(),
+  qualityScore: z.number().int().min(0).max(5),
+  scoreBreakdown: ScoreBreakdownSchema,
+  antiCheatFlags: z.array(z.string()),
+  reviewRequired: z.boolean(),
+  responseDurationMs: z.number().int().min(0),
+  evaluatedAtMs: z.number().int().min(0),
+});
 
 export const InterviewState = new StateSchema({
   interviewId: z.uuid(),
@@ -17,16 +35,41 @@ export const InterviewState = new StateSchema({
     summary: z.string(),
   })),
   lastAnswer: z.string(),
+  answerHistory: z.array(z.string()),
+  lastQuestionAtMs: z.number().int().min(0),
+  lastResponseDurationMs: z.number().int().min(0),
+  scoreBreakdown: ScoreBreakdownSchema,
+  antiCheatFlags: z.array(z.string()),
+  reviewRequired: z.boolean(),
+  evaluationHistory: z.array(EvaluationRecordSchema),
   qualityScore: z.number().int().min(0).max(5),
   followUp: z.boolean(),
   nextQuestion: z.string(),
 });
 
 const evaluateNode = (state: typeof InterviewState.State) => {
-  if (!state.lastAnswer.trim()) {
-    return { qualityScore: 0, followUp: false };
+  const answer = state.lastAnswer.trim();
+  if (!answer) {
+    return {
+      qualityScore: 0,
+      followUp: false,
+      scoreBreakdown: { evidence: 0, reasoning: 0, specificity: 0, clarity: 0, total: 0 },
+      antiCheatFlags: [],
+      reviewRequired: false,
+      lastResponseDurationMs: 0,
+    };
   }
-  const evaluation = evaluateAnswer(state.lastAnswer, state.difficultyScore);
+
+  const now = Date.now();
+  const responseDurationMs = state.lastQuestionAtMs > 0
+    ? Math.max(0, now - state.lastQuestionAtMs)
+    : 0;
+  const evaluation = fairEvaluateAnswer({
+    answer,
+    previousAnswers: state.answerHistory,
+    responseDurationMs: responseDurationMs > 0 ? responseDurationMs : undefined,
+    difficulty: state.difficultyScore,
+  });
   const nextDifficulty =
     evaluation.qualityScore >= 4
       ? Math.min(5, state.difficultyScore + 1)
@@ -39,11 +82,25 @@ const evaluateNode = (state: typeof InterviewState.State) => {
     followUp: evaluation.needsFollowUp,
     evaluatedConcepts: [...state.evaluatedConcepts, evaluation.concept],
     difficultyScore: nextDifficulty,
+    answerHistory: [...state.answerHistory, answer].slice(-100),
+    scoreBreakdown: evaluation.scoreBreakdown,
+    antiCheatFlags: evaluation.antiCheat.flags,
+    reviewRequired: evaluation.antiCheat.reviewRequired,
+    lastResponseDurationMs: responseDurationMs,
+    evaluationHistory: [...state.evaluationHistory, {
+      concept: evaluation.concept,
+      qualityScore: evaluation.qualityScore,
+      scoreBreakdown: evaluation.scoreBreakdown,
+      antiCheatFlags: evaluation.antiCheat.flags,
+      reviewRequired: evaluation.antiCheat.reviewRequired,
+      responseDurationMs,
+      evaluatedAtMs: now,
+    }].slice(-100),
   };
 };
 
-const questionNode = (state: typeof InterviewState.State) => ({
-  nextQuestion: !state.lastAnswer.trim() && state.turnNumber === 0
+const questionNode = (state: typeof InterviewState.State) => {
+  const nextQuestion = !state.lastAnswer.trim() && state.turnNumber === 0
     ? buildQuestionHistory(state.resumeProjects, state.role, state.branch)[0]
     : selectNextQuestion({
       branch: state.branch,
@@ -53,9 +110,15 @@ const questionNode = (state: typeof InterviewState.State) => ({
       evaluatedConcepts: state.evaluatedConcepts,
       resumeProjects: state.resumeProjects,
       followUp: state.followUp,
-    }),
-  turnNumber: state.turnNumber + (state.lastAnswer.trim() ? 1 : 0),
-});
+    });
+
+  return {
+    nextQuestion,
+    questionHistory: [...state.questionHistory, nextQuestion].slice(-100),
+    turnNumber: state.turnNumber + (state.lastAnswer.trim() ? 1 : 0),
+    lastQuestionAtMs: Date.now(),
+  };
+};
 
 export const interviewGraph = new StateGraph(InterviewState)
   .addNode("evaluate", evaluateNode)

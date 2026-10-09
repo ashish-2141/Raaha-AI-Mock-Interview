@@ -12,7 +12,8 @@ const RequestSchema = z.object({
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {\n  const startedAt = performance.now();
+export async function POST(request: Request) {
+  const startedAt = performance.now();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
 

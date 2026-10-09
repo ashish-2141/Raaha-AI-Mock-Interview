@@ -52,8 +52,6 @@ export type CollegeDashboardSummary = {
   note: string;
 };
 
-const DIMENSIONS = ["evidence", "reasoning", "specificity", "clarity"] as const;
-
 function rounded(value: number): number {
   return Math.round(value * 100) / 100;
 }
@@ -141,14 +139,6 @@ export function buildCollegeDashboardSummary(
   }
 
   const visibleSessions = sessions.filter((session) => branches.some((branch) => branch.branch === (session.branch || "Unspecified")));
-  const visibleEvaluations = visibleSessions.flatMap((session) => session.evaluationHistory);
-
-  // Keep dimension names out of the dashboard payload until enough participants exist.
-  // Dimension-level summaries are derived only from visible branch groups.
-  const _visibleDimensionValues = DIMENSIONS.map((dimension) =>
-    visibleEvaluations.map((evaluation) => evaluation.scoreBreakdown[dimension]),
-  );
-  void _visibleDimensionValues;
 
   return {
     generatedAt,

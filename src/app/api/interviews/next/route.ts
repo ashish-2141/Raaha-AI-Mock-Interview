@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { advanceInterview } from "@/lib/interview/graph";
-import { InterviewInputSchema } from "@/lib/interview/types";
-import { buildConversationContext } from "@/lib/interview/context";
+import { loadVoiceSession, saveVoiceSession } from "@/lib/voice/session";
+
+const RequestSchema = z.object({
+  interviewId: z.uuid(),
+  lastAnswer: z.string().trim().min(1).max(5000),
+});
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,22 +20,37 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = InterviewInputSchema.parse(await request.json());
-    const state = await advanceInterview({
-      ...body,
-      qualityScore: 0,
-      followUp: false,
-      nextQuestion: "",
+    const body = RequestSchema.parse(await request.json());
+    const session = await loadVoiceSession(data.user.id, body.interviewId);
+
+    if (!session) {
+      return NextResponse.json({ error: "Interview session not found." }, { status: 404 });
+    }
+    if (session.unauthorized) {
+      return NextResponse.json({ error: "Interview session is not owned by this account." }, { status: 403 });
+    }
+
+    const nextState = await advanceInterview({
+      ...session.state,
+      lastAnswer: body.lastAnswer,
     });
+    await saveVoiceSession(data.user.id, body.interviewId, nextState);
 
     return NextResponse.json({
       interviewId: body.interviewId,
-      turnNumber: state.turnNumber,
-      difficultyScore: state.difficultyScore,
-      nextQuestion: state.nextQuestion,
-      qualityScore: state.qualityScore,
-      followUp: state.followUp,
-      contextPreview: buildConversationContext(body),
+      turnNumber: nextState.turnNumber,
+      difficultyScore: nextState.difficultyScore,
+      nextQuestion: nextState.nextQuestion,
+      qualityScore: nextState.qualityScore,
+      followUp: nextState.followUp,
+      scoreBreakdown: nextState.scoreBreakdown,
+      antiCheat: {
+        flags: nextState.antiCheatFlags,
+        reviewRequired: nextState.reviewRequired,
+        note: nextState.reviewRequired
+          ? "Flagged for human review only. Integrity flags do not directly reduce the candidate score."
+          : "No automated integrity signal detected. This is not proof that an answer is authentic.",
+      },
       userId: data.user.id,
     });
   } catch (error) {

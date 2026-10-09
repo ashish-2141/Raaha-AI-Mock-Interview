@@ -42,6 +42,14 @@ export async function POST(request: Request) {
       difficultyScore: nextState.difficultyScore,
       followUp: nextState.followUp,
       qualityScore: nextState.qualityScore,
+      scoreBreakdown: nextState.scoreBreakdown,
+      antiCheat: {
+        flags: nextState.antiCheatFlags,
+        reviewRequired: nextState.reviewRequired,
+        note: nextState.reviewRequired
+          ? "Flagged for human review only. Integrity flags do not directly reduce the candidate score."
+          : "No automated integrity signal detected. This is not proof that an answer is authentic.",
+      },
       latencyMs: Math.round(performance.now() - startedAt),
       mode: "adaptive",
       userId: data.user.id,

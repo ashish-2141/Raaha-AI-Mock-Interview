@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 type SkillSummary = {
   branch: string;
@@ -31,7 +31,7 @@ type DashboardSummary = {
   note: string;
 };
 
-const panelStyle: React.CSSProperties = {
+const panelStyle: CSSProperties = {
   border: "1px solid #d8dee8",
   borderRadius: 12,
   padding: 18,

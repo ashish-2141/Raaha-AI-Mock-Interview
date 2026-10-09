@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { VoiceStartInputSchema } from "@/lib/voice/types";
@@ -6,6 +7,12 @@ import { saveVoiceSession } from "@/lib/voice/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function matchesPilotCode(supplied: string, expected: string): boolean {
+  const candidate = Buffer.from(supplied, "utf8");
+  const configured = Buffer.from(expected, "utf8");
+  return candidate.length === configured.length && timingSafeEqual(candidate, configured);
+}
 
 export async function POST(request: Request) {
   const startedAt = performance.now();
@@ -18,8 +25,24 @@ export async function POST(request: Request) {
 
   try {
     const input = VoiceStartInputSchema.parse(await request.json());
-    const state = await createInitialVoiceTurn(input);
+    let collegeId: string | null = null;
 
+    if (input.pilotCode) {
+      const expectedCode = process.env.RAAHA_PILOT_INVITE_CODE;
+      const configuredCollegeId = process.env.RAAHA_PILOT_COLLEGE_ID;
+      if (!expectedCode || !configuredCollegeId) {
+        return NextResponse.json({ error: "The college pilot is not configured on this deployment." }, { status: 503 });
+      }
+      if (!matchesPilotCode(input.pilotCode, expectedCode)) {
+        return NextResponse.json({ error: "The college pilot code is invalid." }, { status: 403 });
+      }
+      collegeId = configuredCollegeId;
+    }
+
+    const state = await createInitialVoiceTurn(input, {
+      collegeId,
+      consentAcceptedAtMs: Date.now(),
+    });
     await saveVoiceSession(data.user.id, input.interviewId, state);
 
     return NextResponse.json({
@@ -31,6 +54,7 @@ export async function POST(request: Request) {
       qualityScore: state.qualityScore,
       latencyMs: Math.round(performance.now() - startedAt),
       mode: "adaptive",
+      pilotCohort: collegeId !== null,
       userId: data.user.id,
     });
   } catch (error) {

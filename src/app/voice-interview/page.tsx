@@ -61,6 +61,9 @@ function suggestedRoleForBranch(branch: string): string {
   if (key === "DATA_SCIENCE") return "Data Analyst";
   if (key === "CYBERSECURITY") return "Junior Security Analyst";
   if (key === "CHEMICAL") return "Chemical Engineer";
+  if (key === "METALLURGY") return "Materials/Metallurgy Engineer";
+  if (key === "MINING") return "Mining Engineer";
+  if (key === "BIOTECH") return "Biotechnology/Bioprocess Engineer";
   return "Junior Backend Developer";
 }
 

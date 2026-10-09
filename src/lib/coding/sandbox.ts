@@ -105,7 +105,11 @@ function describeExecutionFailure(error: unknown): { unavailable: boolean; timed
   return { unavailable, timedOut, message };
 }
 
-export async function executeCodingChallenge(source: string, challenge: CodingChallenge): Promise<SandboxResult> {
+export async function executeCodingChallenge(
+  source: string,
+  challenge: CodingChallenge,
+  options: { allowAiReview?: boolean } = {},
+): Promise<SandboxResult> {
   const validationError = validateCandidateSource(source);
   if (validationError) {
     return {
@@ -162,7 +166,7 @@ export async function executeCodingChallenge(source: string, challenge: CodingCh
         passedCases: passed,
         totalCases: challenge.hiddenCases.length,
         fallbackReview: buildReview(challenge, cases),
-      }),
+      }, options.allowAiReview === true),
     };
   } catch (error) {
     const failure = describeExecutionFailure(error);

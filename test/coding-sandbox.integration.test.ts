@@ -39,6 +39,29 @@ describe.skipIf(!dockerIntegrationEnabled)("Docker coding sandbox integration", 
     expect(result.cases.some((item) => !item.passed)).toBe(true);
   }, 20_000);
 
+  it("does not mount the hidden-test runner beside candidate source", async () => {
+    if (!challenge) throw new Error("Two Sum challenge fixture is missing.");
+    const source = `export async function twoSum(nums, target) {
+      const fs = await import("node:fs/promises");
+      try {
+        await fs.readFile("/workspace/runner.mjs", "utf8");
+        return [];
+      } catch {
+        const seen = new Map();
+        for (let i = 0; i < nums.length; i += 1) {
+          const other = target - nums[i];
+          if (seen.has(other)) return [seen.get(other), i].sort((a, b) => a - b);
+          seen.set(nums[i], i);
+        }
+        return [];
+      }
+    }`;
+    const result = await executeCodingChallenge(source, challenge);
+
+    expect(result.status).toBe("passed");
+    expect(result.cases.every((item) => item.passed)).toBe(true);
+  }, 25_000);
+
   it("times out an infinite loop and removes its container", async () => {
     if (!challenge) throw new Error("Two Sum challenge fixture is missing.");
     const listSandboxContainers = async () => {

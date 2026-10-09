@@ -7,6 +7,12 @@ export const AiInterviewQuestionSchema = z.object({
   question: z.string().trim().min(15).max(500),
 });
 
+export function isPreviouslyAskedQuestion(question: string, history: string[]): boolean {
+  const normalize = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, " ");
+  const candidate = normalize(question);
+  return Boolean(candidate) && history.some((item) => normalize(item) === candidate);
+}
+
 export type AiQuestionContext = {
   branch: string;
   role: string;

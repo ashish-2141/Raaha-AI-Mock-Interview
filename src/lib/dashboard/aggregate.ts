@@ -140,17 +140,22 @@ export function buildCollegeDashboardSummary(
 
   const visibleSessions = sessions.filter((session) => branches.some((branch) => branch.branch === (session.branch || "Unspecified")));
   const visibleEvaluations = visibleSessions.flatMap((session) => session.evaluationHistory);
+  const hasSuppressedBranches = visibleSessions.length !== sessions.length;
 
   return {
     generatedAt,
     suppressed: false,
     minimumParticipants,
-    participantCount: participants.size,
+    participantCount: hasSuppressedBranches ? null : participants.size,
     sessionCount: visibleSessions.length,
     completedSessions: visibleSessions.filter((session) => session.turnNumber > 0).length,
     submittedAnswers: visibleEvaluations.length,
     branches,
     weakSkills: allVisibleSkills.filter((skill) => skill.weak).sort((a, b) => a.averageQualityScore - b.averageQualityScore),
-    note: "Only aggregates from consenting participants are shown. Individual answers and candidate identifiers are never returned.",
+    note: hasSuppressedBranches
+      ? "Only aggregates from consenting participants are shown. Small branch groups are suppressed, so the full participant total is hidden. Individual answers and candidate identifiers are never returned."
+      : branches.length === 0
+        ? "The overall cohort reached the minimum, but no individual branch group has enough participants. Branch and skill breakdowns remain hidden."
+        : "Only aggregates from consenting participants are shown. Individual answers and candidate identifiers are never returned.",
   };
 }

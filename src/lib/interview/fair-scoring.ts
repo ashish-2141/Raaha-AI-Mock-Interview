@@ -149,6 +149,17 @@ function normalize(text: string): string {
 function inferConcept(answer: string): string {
   if (/\b(redis|cache|caching|eviction|ttl)\b/.test(answer)) return "caching";
   if (/\b(sql|index|join|query|postgres|postgresql|database)\b/.test(answer)) return "databases";
+  if (/\b(mqtt|microcontroller|sensor|embedded|iot|interrupts?|vlsi|circuit|signal processing)\b/.test(answer)) return "electronics-embedded";
+  if (/\b(power factor|power systems?|transformer|motor|inverter|grid|renewable|electrical)\b/.test(answer)) return "electrical-power";
+  if (/\b(thermodynamics|cad|manufacturing|robotics|tolerance|shaft|vibration|machining)\b/.test(answer)) return "mechanical-design";
+  if (/\b(structural|concrete|surveying|settlement|drainage|civil engineering|reinforcement)\b/.test(answer)) return "civil-engineering";
+  if (/\b(classifier|precision|recall|model training|overfitting|feature engineering|data leakage)\b/.test(answer)) return "ai-ml";
+  if (/\b(dataset|data analysis|correlation|retention cohort|missing values|visuali[sz]ation)\b/.test(answer)) return "data-analysis";
+  if (/\b(phishing|vulnerability|least privilege|threat model|incident response|encryption|authentication)\b/.test(answer)) return "cybersecurity";
+  if (/\b(heat exchanger|material balance|process unit|distillation|process safety|chemical engineering)\b/.test(answer)) return "chemical-processes";
+  if (/\b(alloy|metallurgy|heat treatment|fracture|corrosion|hardness|toughness|steel)\b/.test(answer)) return "materials-science";
+  if (/\b(open-pit|underground mining|ore grade|mineral processing|slope movement|mine site)\b/.test(answer)) return "mining-operations";
+  if (/\b(cell culture|bioprocess|contamination control|diagnostic assay|microbiology|biotechnology)\b/.test(answer)) return "biotech";
   if (/\b(spring|rest|api|http|controller|endpoint)\b/.test(answer)) return "backend";
   if (/\b(thread|lock|concurrent|async|parallel)\b/.test(answer)) return "concurrency";
   if (/\b(docker|container|image|deployment)\b/.test(answer)) return "deployment";

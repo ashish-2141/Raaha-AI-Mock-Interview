@@ -34,6 +34,14 @@ REDIS_URL
 The Android weak-network under-2-second acceptance target is not claimed until measured on a real device and connection.
 Prisma uses the published 7.10.0 release in the current CI-compatible dependency set.
 
+## Connected user journey and design review
+
+The home page links to sign-in, resume parsing, voice interview, live coding, and the TPO dashboard. After a successful resume parse, the validated profile is kept in this browser tab's `sessionStorage`; the voice interview reads its branch and projects and lets the user edit the target role before starting. The profile is not copied to server storage by this hand-off.
+
+Read [System Design and Stack Trade-offs](SYSTEM_DESIGN.md) for the alternatives considered, explicit current-versus-target architecture, estimated token costs, latency measurement plan and 1,000-student/day capacity assumptions. It is a draft awaiting manager approval, not an approved architecture decision.
+
+Current status remains staging-only: the free Render URL and Redis health are verified, but valid Supabase credentials are still needed for sign-in. Interview question selection/scoring is currently deterministic rather than an LLM call per turn. Real-resume accuracy, Android weak-network latency, Docker execution timeout/cleanup, authenticated load testing, and the consenting 10-student pilot must be verified against their stated acceptance criteria.
+
 ## College dashboard and pilot setup
 
 The authenticated TPO dashboard is available at `/college-dashboard`. It returns cohort-level aggregates only. Individual answers and candidate identifiers are not returned. The overall cohort is suppressed until at least five consenting participants contribute. Each displayed branch and skill group independently needs five distinct participants.

@@ -1,6 +1,7 @@
 import { StateGraph, StateSchema, START, END } from "@langchain/langgraph";
 import { z } from "zod";
 import { fairEvaluateAnswer } from "./fair-scoring";
+import { requestAiInterviewQuestion } from "./ai-question";
 import { buildQuestionHistory, selectNextQuestion } from "./questions";
 
 const ScoreBreakdownSchema = z.object({
@@ -101,8 +102,8 @@ const evaluateNode = (state: typeof InterviewState.State) => {
   };
 };
 
-const questionNode = (state: typeof InterviewState.State) => {
-  const nextQuestion = !state.lastAnswer.trim() && state.turnNumber === 0
+const questionNode = async (state: typeof InterviewState.State) => {
+  const deterministicQuestion = !state.lastAnswer.trim() && state.turnNumber === 0
     ? buildQuestionHistory(state.resumeProjects, state.role, state.branch)[0]
     : selectNextQuestion({
       branch: state.branch,
@@ -113,6 +114,9 @@ const questionNode = (state: typeof InterviewState.State) => {
       resumeProjects: state.resumeProjects,
       followUp: state.followUp,
     });
+
+  const aiQuestion = await requestAiInterviewQuestion(state);
+  const nextQuestion = aiQuestion ?? deterministicQuestion;
 
   return {
     nextQuestion,

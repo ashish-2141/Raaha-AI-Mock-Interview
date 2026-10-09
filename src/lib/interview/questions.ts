@@ -213,6 +213,17 @@ export function buildQuestionHistory(resumeProjects: Project[], role: string, br
   return [intro];
 }
 
+function estimateQuestionDifficulty(question: string): number {
+  const normalized = question.toLowerCase();
+  if (/\b(why are you interested|tell me about a time|team project|communicate|non-technical|stakeholder|feedback|individual contribution)\b/.test(normalized)) {
+    return 2;
+  }
+  if (/\b(concurrent|monitor|investigate|debug|incident|out of order|failure|drift|uncertainty|trade-off|tradeoff|hazard|safety risk|unexpected|under changing)\b/.test(normalized)) {
+    return 4;
+  }
+  return 3;
+}
+
 export function selectNextQuestion(args: {
   branch: string;
   role: string;
@@ -224,6 +235,12 @@ export function selectNextQuestion(args: {
 }) {
   if (args.followUp) {
     const lastConcept = args.evaluatedConcepts.at(-1) ?? "the previous topic";
+    if (args.difficulty <= 2) {
+      return `Build up from the basics of ${lastConcept}: explain the main idea in simple terms, give one example, and say how you would check it.`;
+    }
+    if (args.difficulty >= 4) {
+      return `Go deeper on ${lastConcept}: compare two approaches, explain the trade-offs and failure cases, and describe how you would verify the result.`;
+    }
     return `Go deeper on ${lastConcept}: give a concrete example, explain your trade-off, and tell me how you verified it worked.`;
   }
 
@@ -236,7 +253,9 @@ export function selectNextQuestion(args: {
     .sort((a, b) => {
       const aHits = projectHints.filter((skill) => a.toLowerCase().includes(skill)).length;
       const bHits = projectHints.filter((skill) => b.toLowerCase().includes(skill)).length;
-      return bHits - aHits;
+      const aDifficultyGap = Math.abs(estimateQuestionDifficulty(a) - args.difficulty);
+      const bDifficultyGap = Math.abs(estimateQuestionDifficulty(b) - args.difficulty);
+      return (bHits - aHits) || (aDifficultyGap - bDifficultyGap);
     });
 
   return ranked[0] ?? `Raise the difficulty: solve a realistic ${args.role} scenario and justify your design decisions step by step.`;

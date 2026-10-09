@@ -283,7 +283,7 @@ export default function VoiceInterviewPage() {
             style={{ marginTop: 5 }}
           />
           <span>
-            I consent to processing my interview transcript and scores for feedback. Session data is stored temporarily and expires after 24 hours of inactivity. If I use a college pilot code, my session may contribute to aggregate branch and skill insights. The college dashboard does not show my individual answers or identity.
+            I consent to processing my interview transcript, answer scores, selected branch/role, and the project context I chose to share. The app stores interview session state temporarily in Redis and expires it after 24 hours of inactivity; the extracted resume profile may be sent to the server when the interview starts. The current question-selection and scoring path is rule-based. If I use a college pilot code, my session may contribute to aggregate branch and skill insights. The college dashboard does not show my individual answers or identity, and participation is voluntary.
           </span>
         </label>
         <label style={{ display: "block", marginTop: 14 }}>

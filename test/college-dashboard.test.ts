@@ -61,6 +61,10 @@ describe("college dashboard aggregation", () => {
     expect(summary.suppressed).toBe(false);
     expect(summary.branches).toEqual([]);
     expect(summary.weakSkills).toEqual([]);
+    expect(summary.participantCount).toBeNull();
+    expect(summary.sessionCount).toBeNull();
+    expect(summary.completedSessions).toBeNull();
+    expect(summary.submittedAnswers).toBeNull();
   });
 
   it("excludes sessions without consent or a college association", () => {

@@ -1,4 +1,5 @@
 import { getRedis } from "@/lib/interview/redis";
+import type { InterviewState } from "@/lib/interview/graph";
 
 const TTL_SECONDS = 60 * 60 * 24;
 const ZERO_BREAKDOWN = { evidence: 0, reasoning: 0, specificity: 0, clarity: 0, total: 0 };
@@ -47,5 +48,5 @@ export async function loadVoiceSession(ownerId: string, interviewId: string) {
     evaluationHistory: Array.isArray(stored.evaluationHistory) ? stored.evaluationHistory : [],
   };
 
-  return { unauthorized: false as const, state };
+  return { unauthorized: false as const, state: state as typeof InterviewState.State };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { parseInterviewResumeContext, RESUME_INTERVIEW_CONTEXT_KEY, type InterviewProject } from "@/lib/interview/resume-context";
 
 type SpeechRecognitionEventLike = Event & {
   results: {
@@ -41,14 +42,6 @@ type VoicePayload = {
 };
 
 const INTERVIEW_ID_STORAGE = "raaha.voice.interviewId";
-const RESUME_CONTEXT_KEY = "raaha.interview.resumeContext";
-
-type InterviewProject = { name: string; techStack: string[]; summary: string };
-type InterviewResumeContext = {
-  branch: string;
-  role: string;
-  resumeProjects: InterviewProject[];
-};
 
 const BRANCH_OPTIONS = [
   ["CSE", "Computer Science (CSE)"],
@@ -62,29 +55,6 @@ const BRANCH_OPTIONS = [
   ["CYBERSECURITY", "Cybersecurity"],
   ["OTHER", "Other / not specified"],
 ] as const;
-
-function readResumeContext(): InterviewResumeContext | null {
-  try {
-    const raw = window.sessionStorage.getItem(RESUME_CONTEXT_KEY);
-    if (!raw) return null;
-    const value: unknown = JSON.parse(raw);
-    if (!value || typeof value !== "object") return null;
-    const candidate = value as Record<string, unknown>;
-    if (typeof candidate.branch !== "string" || typeof candidate.role !== "string") return null;
-    if (!Array.isArray(candidate.resumeProjects)) return null;
-    const resumeProjects = candidate.resumeProjects.filter((project): project is InterviewProject => {
-      if (!project || typeof project !== "object") return false;
-      const item = project as Record<string, unknown>;
-      return typeof item.name === "string"
-        && typeof item.summary === "string"
-        && Array.isArray(item.techStack)
-        && item.techStack.every((skill) => typeof skill === "string");
-    }).slice(0, 15);
-    return { branch: candidate.branch, role: candidate.role, resumeProjects };
-  } catch {
-    return null;
-  }
-}
 
 function getSpeechRecognition(): SpeechRecognitionConstructor | null {
   const voiceWindow = window as VoiceWindow;
@@ -116,7 +86,7 @@ export default function VoiceInterviewPage() {
   useEffect(() => {
     const stored = window.localStorage.getItem(INTERVIEW_ID_STORAGE);
     if (stored) setInterviewId(stored);
-    const resumeContext = readResumeContext();
+    const resumeContext = parseInterviewResumeContext(window.sessionStorage.getItem(RESUME_INTERVIEW_CONTEXT_KEY));
     if (resumeContext) {
       setBranch(resumeContext.branch);
       setRole(resumeContext.role);

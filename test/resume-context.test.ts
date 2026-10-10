@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createInitialVoiceTurn } from "../src/lib/voice/protocol";
 import {
   createInterviewResumeContext,
   parseInterviewResumeContext,
@@ -35,6 +36,23 @@ describe("resume-to-interview context", () => {
   it("parses a valid tab-scoped context", () => {
     const context = createInterviewResumeContext(profile, "Embedded Systems Intern");
     expect(parseInterviewResumeContext(JSON.stringify(context))).toEqual(context);
+  });
+
+  it("uses the transferred project to ground the first adaptive interview question", async () => {
+    const context = createInterviewResumeContext(profile, "Embedded Systems Intern");
+    const state = await createInitialVoiceTurn({
+      interviewId: "00000000-0000-7000-8000-000000000001",
+      branch: context.branch,
+      role: context.role,
+      difficultyScore: 3,
+      resumeProjects: context.resumeProjects,
+      consentAccepted: true,
+    }, { collegeId: null, consentAcceptedAtMs: 1_800_000_000_000 });
+
+    expect(state.branch).toBe("ECE");
+    expect(state.role).toBe("Embedded Systems Intern");
+    expect(state.nextQuestion).toContain("Smart Irrigation");
+    expect(state.nextQuestion).toContain("ESP32");
   });
 
   it("rejects malformed JSON, invalid branch codes and oversized project payloads", () => {

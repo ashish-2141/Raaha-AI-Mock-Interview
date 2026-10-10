@@ -87,6 +87,7 @@ function selectBank(branch: string, role: string): string[] {
   if (/\b(data science|data scientist|data analyst|analytics|business intelligence)\b/.test(context)) return QUESTION_BANK.data_science!;
   if (/\b(cybersecurity|cyber security|infosec|security analyst|penetration test)\b/.test(context)) return QUESTION_BANK.cybersecurity!;
   if (/\b(chemical|metallurgy|metallurgical|materials|mining|biotech|biotechnology|pharma process|process engineer|bioprocess)\b/.test(context)) return QUESTION_BANK.process!;
+  if (/\b(cse|computer science|it|information technology)\b/.test(branchKey)) return QUESTION_BANK.backend!;
   if (/\b(backend|software|java|web developer|full stack|fullstack)\b/.test(context)) return QUESTION_BANK.backend!;
   return QUESTION_BANK.default!;
 }

@@ -2,7 +2,7 @@
 
 ## Status
 
-The application now has a Docker Compose deployment path. This is not proof of a live public deployment. The repository does not currently define a hosted production URL, and a production deployment requires the operator's server, DNS/TLS, Supabase and OpenAI configuration.
+The application has both a Docker Compose path and a live Free Render staging deployment at https://raaha-ai-mock-interview-free.onrender.com. The live staging service is not production-accepted. Supabase project `raaha-ai-mock-interview` is healthy on the Free tier, and its URL/publishable key plus `NEXT_PUBLIC_APP_URL` were configured in Render; sign-in and post-refresh route smoke tests remain pending. See `FREE_ONLY_ARCHITECTURE_AUDIT.md` for current constraints.
 
 ## 1. Prepare the runtime
 
@@ -10,8 +10,9 @@ Requirements:
 - A Linux host with Docker Engine and the Docker Compose plugin.
 - A domain name and TLS reverse proxy for public production use.
 - A Supabase project with email/password auth configured.
-- An OpenAI API key for resume parsing.
 - An authorised TPO Supabase user ID and a college partner before enabling the pilot.
+
+The current resume parser still calls OpenAI and therefore does not satisfy strict zero spend. Leave `OPENAI_API_KEY` unset for the free-only target; resume parsing will remain blocked until a tested local/free-provider replacement is merged. Do not add a paid key or automatic paid fallback.
 
 Do not expose port 3000 directly to the public internet. The Compose file binds it to 127.0.0.1 by default. Put a TLS reverse proxy in front of it.
 
@@ -26,8 +27,9 @@ cp .env.example .env
 Fill in the required values:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `OPENAI_API_KEY`
 - `NEXT_PUBLIC_APP_URL`, set this to the final HTTPS origin before building, because `NEXT_PUBLIC_*` values are embedded in the browser bundle at build time.
+
+Do not configure `OPENAI_API_KEY` in strict zero-spend mode. The current resume parse route requires it and will fail without it; this is an acknowledged code blocker, not a successful free parser. Only use an OpenAI key after explicit approval to leave the zero-spend policy.
 
 Optional:
 - `DATABASE_URL`, where applicable to the configured database.
@@ -67,7 +69,7 @@ Check the local health endpoint:
 curl -fsS http://127.0.0.1:3000/api/health
 ```
 
-The health endpoint verifies Redis connectivity. An `ok` response does not prove that Supabase auth or the OpenAI API is correctly configured. Test sign-in and resume parsing after deployment.
+The health endpoint verifies Redis connectivity. An `ok` response does not prove that Supabase auth, resume parsing or any model provider is configured. Test sign-in after the environment refresh. Resume parsing is not accepted under strict zero spend until the parser dependency is replaced.
 
 ## 4. Configure the college dashboard and invitees
 

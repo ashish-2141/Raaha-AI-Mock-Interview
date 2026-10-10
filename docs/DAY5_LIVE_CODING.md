@@ -22,4 +22,4 @@ The Day 5 live-coding slice now exists in the working repository.
 
 ## Acceptance boundary
 
-CI runs the sandbox runtime integration test against the public Node image mirror. The challenge image can be pinned using `RAAHA_SANDBOX_IMAGE`; the current default is a versioned major/minor image tag, not a digest, so digest pinning remains a production hardening item. A real browser/device E2E run and adversarial attempts to reach the host filesystem or network are still required before calling the weekly feature production-accepted.
+CI runs the sandbox runtime integration test against the public Node image mirror. The challenge image can be pinned using `RAAHA_SANDBOX_IMAGE`; the current default is the moving `24-alpine` tag, not a digest, so digest pinning remains a production hardening item. A real browser/device E2E run and adversarial attempts to reach the host filesystem or network are still required before calling the weekly feature production-accepted.

@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -53,11 +53,14 @@ function buildRunner(challenge: CodingChallenge): string {
   ].join("\n");
 }
 
-function buildDockerArgs(workdir: string): string[] {
-  const image = process.env.RAAHA_SANDBOX_IMAGE ?? "node:24-alpine";
+export function buildDockerArgs(workdir: string): string[] {
+  const image = process.env.RAAHA_SANDBOX_IMAGE ?? "public.ecr.aws/docker/library/node:24-alpine";
   return [
     "run",
     "--rm",
+    "--cidfile", path.join(workdir, "container.cid"),
+    "--stop-timeout", "1",
+    "--user", "1000:1000",
     "--network", "none",
     "--memory", SANDBOX_POLICY.memoryMb + "m",
     "--cpus", SANDBOX_POLICY.cpuLimit,
@@ -71,6 +74,25 @@ function buildDockerArgs(workdir: string): string[] {
     image,
     "node", "--no-warnings", "/workspace/runner.mjs",
   ];
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const value = error as { killed?: boolean; signal?: string; code?: string | number };
+  return value.killed === true || value.signal === "SIGTERM" || value.code === "ETIMEDOUT";
+}
+
+async function terminateSandbox(workdir: string): Promise<void> {
+  try {
+    const containerId = (await readFile(path.join(workdir, "container.cid"), "utf8")).trim();
+    if (!containerId) return;
+    await execFileAsync("docker", ["kill", "--signal=KILL", containerId], {
+      timeout: 2_000,
+      maxBuffer: 8 * 1024,
+    });
+  } catch {
+    // The container may already have exited or Docker may be unavailable.
+  }
 }
 
 function buildReview(challenge: CodingChallenge, cases: SandboxCaseResult[]): string {
@@ -121,8 +143,13 @@ export async function executeCodingChallenge(source: string, challenge: CodingCh
       review: buildReview(challenge, cases),
     };
   } catch (error) {
-    const message = normalizeError(error instanceof Error ? error.message : "Sandbox execution failed.");
-    const unavailable = /ENOENT|Cannot connect|daemon|docker|image/i.test(message);
+    const timedOut = isTimeoutError(error);
+    if (timedOut) await terminateSandbox(workdir);
+
+    const message = timedOut
+      ? "Sandbox timed out after " + (SANDBOX_POLICY.timeoutMs + 1_000) + " ms; the container termination was requested."
+      : normalizeError(error instanceof Error ? error.message : "Sandbox execution failed.");
+    const unavailable = !timedOut && /ENOENT|Cannot connect to the Docker daemon|Is the docker daemon running|pull access denied|manifest unknown/i.test(message);
 
     return {
       status: unavailable ? "unavailable" : "failed",

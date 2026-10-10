@@ -197,7 +197,7 @@ async function executeIsolatedCase(source: string, testCase: HiddenCase): Promis
       throw new Error(normalizeError(logs.stderr || "Sandbox runner exited with a non-zero status."));
     }
 
-    const outputLines = logs.stdout.trim().split(/\\r?\\n/);
+    const outputLines = logs.stdout.trim().split(/\r?\n/);
     const resultLine = outputLines.at(-1);
     if (!resultLine) throw new Error("Sandbox runner returned no result.");
     const parsed = JSON.parse(resultLine) as { ok: boolean; result?: unknown; durationMs?: number };

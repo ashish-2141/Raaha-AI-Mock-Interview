@@ -38,7 +38,7 @@ Prisma uses the published 7.10.0 release in the current CI-compatible dependency
 
 The student route is now connected: parse a PDF at `/resumes`, review the extracted branch and projects, choose a target role, and continue to `/voice-interview`. Only the branch, target role and project name/technology/summary are transferred in tab-scoped session storage; the full name and CGPA are not copied to that context. The interview setup re-validates the saved context before sending it to the authenticated start endpoint.
 
-Use `/live-coding` for the Two Sum sandbox challenge. The home page links to the main flows. API-backed actions still require valid Supabase credentials, and resume parsing also requires a valid OpenAI API key.
+Use `/live-coding` for the Two Sum sandbox challenge. The home page links to the main flows. API-backed actions require valid Supabase credentials. The resume parser in the current source still calls the OpenAI Responses API; under a strict zero-spend policy, leave `OPENAI_API_KEY` unset and treat live AI resume parsing as blocked until a tested local/free-provider replacement is merged. Gemini, Groq, Transformers.js Whisper and Silero VAD are not currently integrated.
 
 See [the system design and acceptance matrix](docs/SYSTEM_DESIGN.md) for explicit technology trade-offs, the 1,000-interviews/day sizing assumptions, latency targets, cost formula and every remaining acceptance gate. It is a proposal awaiting manager sign-off, not evidence of measured capacity or real-student acceptance.
 
@@ -76,7 +76,7 @@ Operations summaries are restricted to IDs in `RAAHA_OPERATIONS_ADMIN_USER_IDS`.
 
 A Docker Compose deployment path is included for a Linux host with Docker Engine and the Compose plugin. It runs the Next.js app and Redis, keeps Redis private on the Compose network, and binds the app to `127.0.0.1:3000` by default. Put a TLS reverse proxy in front of it for public HTTPS traffic.
 
-Read [the deployment runbook](docs/DEPLOYMENT_RUNBOOK.md) before starting. Copy `.env.example` to `.env`, configure Supabase and OpenAI, set the final HTTPS origin in `NEXT_PUBLIC_APP_URL` before the image build, then run:
+Read [the deployment runbook](docs/DEPLOYMENT_RUNBOOK.md) before starting. Copy `.env.example` to `.env`, configure Supabase, set the final HTTPS origin in `NEXT_PUBLIC_APP_URL` before the image build, and follow [the free-only architecture audit](docs/FREE_ONLY_ARCHITECTURE_AUDIT.md). The current resume parser still requires OpenAI, so do not claim live resume parsing works under strict zero spend until that call is replaced. For local launch:
 
 ```sh
 docker compose config
@@ -91,6 +91,6 @@ Do not commit the `.env` file. The public Supabase values are passed as Docker b
 
 The repository also includes `render.yaml` for a **free-tier Render staging setup**: a Docker web service and private Key Value instance in Singapore, with deployment after GitHub checks pass. Free web instances sleep after inactivity and may restart; free Key Value does not persist data. Treat it as a smoke-test environment only, not production or a college pilot. Keep both services on the Free plan and do not enable paid add-ons.
 
-Current staging endpoint: [https://raaha-ai-mock-interview-free.onrender.com](https://raaha-ai-mock-interview-free.onrender.com). The free service is deployed, but it is **not ready for interviews yet** until valid Supabase project URL/publishable key are configured. AI-backed features also require a valid OpenAI key, which can incur API usage charges, so no AI API tests should be run under a zero-spend policy. Do not use this staging instance for real student data or the pilot; its Redis data is ephemeral.
+Current staging endpoint: [https://raaha-ai-mock-interview-free.onrender.com](https://raaha-ai-mock-interview-free.onrender.com). Supabase Free project `raaha-ai-mock-interview` is healthy, and its URL/publishable key plus `NEXT_PUBLIC_APP_URL` are configured in Render. The environment-triggered deployment on commit `c5a58565f3f68d9fd4fa17e4846e682db29539ac` is live. Authentication and public-route smoke tests must be rerun after the environment refresh before the deployment is considered verified for interviews.
 
-For the launch sequence, secret inputs, TPO mapping, privacy checks and real pilot steps, follow [the Render launch checklist](docs/RENDER_LAUNCH_CHECKLIST.md). The first deployment requires a Render account connected to this GitHub repository and your Supabase/OpenAI secrets. The repository itself does not confirm that the services have been provisioned or that a public URL is live.
+The service and Redis-compatible Key Value are both Free; Redis persistence is disabled, so staging remains for smoke tests only. No paid OpenAI key is configured. The current resume parsing route therefore remains blocked under the strict zero-spend policy. No Gemini/Groq API integration, real-device voice SLA, production sandbox host, or consented student pilot is claimed. See the [free-only architecture audit](docs/FREE_ONLY_ARCHITECTURE_AUDIT.md), [acceptance status](docs/ACCEPTANCE_STATUS.md), and [Render launch checklist](docs/RENDER_LAUNCH_CHECKLIST.md) before enabling a pilot.

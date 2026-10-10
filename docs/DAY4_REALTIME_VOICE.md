@@ -76,4 +76,4 @@ The route loads the persisted state, sends the transcript through the existing a
 | Network failure | Deterministic local fallback question | Unit test |
 | Response timing | `performance.now()` + API latency | UI instrumentation |
 | Android weak-network <2s | Not measured in this environment | Requires real device/network |
-| Production deployment | Not claimed | Requires deployment + CI verification |
+| Hosted staging | Free Render service is live; health/Redis smoke check passed | Does not prove authentication, AI feature operation, production durability, or real-device acceptance |

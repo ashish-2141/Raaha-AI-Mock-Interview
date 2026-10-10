@@ -74,7 +74,7 @@ const QUESTION_BANK: Record<string, string[]> = {
 
 function selectBank(branch: string, role: string): string[] {
   const branchKey = branch.toLowerCase().replace(/[_/]+/g, " ");
-  const roleKey = role.toLowerCase();
+  const roleKey = role.toLowerCase().replace(/[_/]+/g, " ");
   const context = branchKey + " " + roleKey;
 
   // Branch-specific intent takes precedence over a generic target role so an

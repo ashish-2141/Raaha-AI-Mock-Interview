@@ -33,3 +33,32 @@ jobs:
 
           echo "Staging health did not pass after 30 attempts. Check the Render deploy and logs."
           exit 1
+
+      - name: Smoke-test student and TPO page routes
+        run: |
+          set -eu
+          for route in / /login /resumes /voice-interview /live-coding /college-dashboard; do
+            status="$(curl --silent --show-error --output /tmp/raaha-page.html --write-out '%{http_code}' --max-time 25 "$BASE_URL$route")"
+            if [ "$status" != "200" ]; then
+              echo "Route $route returned HTTP $status, expected 200."
+              head -c 500 /tmp/raaha-page.html || true
+              exit 1
+            fi
+            echo "PASS $route HTTP $status"
+          done
+
+      - name: Verify public coding challenge omits hidden tests
+        run: |
+          set -eu
+          curl --fail --silent --show-error --max-time 25 "$BASE_URL/api/coding/challenge?id=two-sum" -o /tmp/raaha-challenge.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          challenge = json.loads(Path("/tmp/raaha-challenge.json").read_text())
+          assert challenge.get("id") == "two-sum", "unexpected challenge id"
+          assert challenge.get("title") == "Two Sum", "public challenge title missing"
+          assert "starterCode" in challenge, "starter code missing"
+          assert "hiddenCases" not in challenge, "hidden test cases must not be public"
+          assert "expected" not in challenge, "hidden expected answers must not be public"
+          print("PASS public challenge metadata; hidden cases and answers are absent")
+          PY

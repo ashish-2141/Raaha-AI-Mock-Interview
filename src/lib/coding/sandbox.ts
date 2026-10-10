@@ -56,7 +56,7 @@ function buildRunner(input: unknown[]): string {
     "  const result = module.twoSum(...input);",
     '  if (result && typeof result.then === "function") throw new Error("Async solutions are not supported by this challenge.");',
     "  const normalized = Array.isArray(result) ? [...result].sort((a, b) => a - b) : result;",
-    "  process.stdout.write(JSON.stringify({ ok: true, result: normalized, durationMs: Date.now() - started }) + \\"\\n\\");",
+    '  process.stdout.write(JSON.stringify({ ok: true, result: normalized, durationMs: Date.now() - started }) + "\\n");',
     "} catch (error) {",
     '  process.stderr.write(String(error?.message ?? error).slice(0, 500));',
     "  process.exitCode = 2;",

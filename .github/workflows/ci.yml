@@ -66,3 +66,12 @@ jobs:
           RAAHA_RUN_SANDBOX_INTEGRATION: "1"
           RAAHA_SANDBOX_IMAGE: public.ecr.aws/docker/library/node:24-alpine
         run: pnpm exec vitest run test/coding-sandbox.integration.test.ts
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser smoke tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ""
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ""
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: pnpm test:e2e

@@ -34,6 +34,14 @@ REDIS_URL
 The Android weak-network under-2-second acceptance target is not claimed until measured on a real device and connection.
 Prisma uses the published 7.10.0 release in the current CI-compatible dependency set.
 
+## Student experience and design status
+
+The student route is now connected: parse a PDF at `/resumes`, review the extracted branch and projects, choose a target role, and continue to `/voice-interview`. Only the branch, target role and project name/technology/summary are transferred in tab-scoped session storage; the full name and CGPA are not copied to that context. The interview setup re-validates the saved context before sending it to the authenticated start endpoint.
+
+Use `/live-coding` for the Two Sum sandbox challenge. The home page links to the main flows. API-backed actions still require valid Supabase credentials, and resume parsing also requires a valid OpenAI API key.
+
+See [the system design and acceptance matrix](docs/SYSTEM_DESIGN.md) for explicit technology trade-offs, the 1,000-interviews/day sizing assumptions, latency targets, cost formula and every remaining acceptance gate. It is a proposal awaiting manager sign-off, not evidence of measured capacity or real-student acceptance.
+
 ## College dashboard and pilot setup
 
 The authenticated TPO dashboard is available at `/college-dashboard`. It returns cohort-level aggregates only. Individual answers and candidate identifiers are not returned. The overall cohort is suppressed until at least five consenting participants contribute. Each displayed branch and skill group independently needs five distinct participants.

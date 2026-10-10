@@ -32,11 +32,18 @@ The load-test command requires a deployed base URL and an authorised TPO cookie 
 
 ## Still requires real deployment and external access
 
-- Set the production Supabase, Redis and OpenAI configuration in the hosting provider.
-- Configure the pilot college, invite code, TPO access map and operational admin IDs.
-- Deploy the branch to a production-like environment and record its actual URL.
-- Run the authenticated load test and retain the results.
-- Ask a partner college to approve the pilot and invite 10 real students. Obtain their informed consent and confirm the privacy notice before collecting pilot data.
+## Current verified staging
+
+The free Render staging service is live at https://raaha-ai-mock-interview-free.onrender.com. Commit `8de1169abcddbc359129163d2d7d3abefe3bb132` passed main-branch CI and the `/api/health` smoke test, including Redis `ok`. The service is on the Free plan; Key Value persistence is disabled. This proves deploy and dependency health only, not sign-in, AI-backed resume parsing, or readiness for real student data.
+
+## Still requires real credentials and external access
+
+- Configure the actual Supabase project URL and publishable key privately in the hosting provider. Sign-in and authenticated API routes are not accepted until tested with the real project.
+- Configure an OpenAI key only when approved API usage is acceptable; resume parsing cannot be functionally tested without it.
+- Configure the pilot college, invite code, TPO access map and operational admin IDs after partner approval and consent/privacy review.
+- Test sign-in and confirm both authorised and unauthorised TPO access using real accounts.
+- Run the authenticated load test and retain the output from a real authorised TPO session.
+- Ask a partner college to approve the pilot and invite 10 real students. Obtain their informed consent and confirm the privacy notice before collecting data.
 - Record actual participation, completion rate, latency, errors, cost and feedback. Write the post-mortem from those observations.
 
-Synthetic test fixtures only validate the aggregation function. They do not count as student participation. No live deployment, external APM vendor, or 10-student pilot is claimed by this document.
+Synthetic fixtures and health probes do not count as student participation or authenticated load-test evidence. No real 10-student pilot or completed post-mortem is claimed.

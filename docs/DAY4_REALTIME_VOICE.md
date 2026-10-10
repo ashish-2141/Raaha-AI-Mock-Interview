@@ -62,6 +62,7 @@ The route loads the persisted state, sends the transcript through the existing a
 - Text input stays available as a graceful fallback.
 - The UI records response latency for every round.
 - The client uses a deterministic text-safe question when the network request fails.
+- The resume page transfers only the validated branch and project name/technology/summary into tab-scoped session storage. The interview page revalidates that context and sends it as `resumeProjects`; name, CGPA and the general skill list are not copied.
 
 ## Acceptance checklist
 
@@ -75,4 +76,4 @@ The route loads the persisted state, sends the transcript through the existing a
 | Network failure | Deterministic local fallback question | Unit test |
 | Response timing | `performance.now()` + API latency | UI instrumentation |
 | Android weak-network <2s | Not measured in this environment | Requires real device/network |
-| Production deployment | Not claimed | Requires deployment + CI verification |
+| Hosted staging | Free Render service is live; health/Redis smoke check passed | Does not prove authentication, AI feature operation, production durability, or real-device acceptance |

@@ -42,10 +42,12 @@ The endpoint loads the authenticated user's interview session from Redis. The pr
 The response includes `qualityScore`, `scoreBreakdown`, and review-only `antiCheat` signals. The text and voice turn routes use the same adaptive interview graph.
 
 ## Known limitations
+- The unit suite now evaluates an identical answer five times and checks that the deterministic score breakdown is identical. The scorer accepts answer signals, server-held answer history, response duration, and difficulty; candidate name and college are not scorer inputs.
+- This is implementation-level repeatability evidence, not a full empirical bias study. A controlled bias review across question, candidate, and institution scenarios still needs an approved test set and a written analysis.
 - No browser clipboard, tab-focus, or proctoring telemetry is collected.
 - Timing anomalies have benign causes, including rehearsed answers and accessibility tools.
 - Lexical markers do not prove semantic correctness.
-- Dashboard reporting, persistence beyond the Redis session TTL, privacy/access controls, load testing, deployment, and a consented pilot remain separate release requirements.
+- Dashboard reporting, persistence beyond the Redis session TTL, privacy/access controls, authenticated load testing, and a consented pilot remain separate release requirements.
 
 ## Verification
 Run: `pnpm check && pnpm build`

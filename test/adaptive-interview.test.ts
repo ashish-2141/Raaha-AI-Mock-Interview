@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceInterview } from "../src/lib/interview/graph";
+import { selectNextQuestion } from "../src/lib/interview/questions";
 
 function base(lastAnswer: string, history: string[] = [], concepts: string[] = [], difficultyScore = 3) {
   return {
@@ -30,6 +31,48 @@ function base(lastAnswer: string, history: string[] = [], concepts: string[] = [
 }
 
 describe("adaptive interview engine", () => {
+  it.each([
+    { branch: "CSE", role: "Technical Intern", expected: "versioned rest api" },
+    { branch: "IT", role: "Technical Intern", expected: "versioned rest api" },
+    { branch: "ECE", role: "Technical Intern", expected: "microcontroller" },
+    { branch: "EEE", role: "Electrical Engineer", expected: "power quality" },
+    { branch: "MECH", role: "Mechanical Engineer", expected: "manufacturing defect" },
+    { branch: "CIVIL", role: "Civil Engineer", expected: "structural design" },
+    { branch: "AI_ML", role: "Machine Learning Intern", expected: "machine-learning model" },
+    { branch: "DATA_SCIENCE", role: "Data Analyst", expected: "dataset" },
+    { branch: "CYBERSECURITY", role: "Security Analyst", expected: "threat-model" },
+    { branch: "CHEMICAL", role: "Technical Intern", expected: "process-yield" },
+    { branch: "METALLURGY", role: "Technical Intern", expected: "process-yield" },
+    { branch: "MINING", role: "Technical Intern", expected: "process-yield" },
+    { branch: "BIOTECH", role: "Technical Intern", expected: "process-yield" },
+    { branch: "OTHER", role: "Mining Engineer", expected: "process-yield" },
+  ])("selects a domain-specific question for $branch / $role", ({ branch, role, expected }) => {
+    const question = selectNextQuestion({
+      branch,
+      role,
+      difficulty: 3,
+      questionHistory: [],
+      evaluatedConcepts: [],
+      resumeProjects: [],
+      followUp: false,
+    });
+    expect(question.toLowerCase()).toContain(expected);
+  });
+
+  it("avoids repeating a question from the selected domain bank", () => {
+    const first = "How would you evaluate a machine-learning model beyond accuracy, and detect data leakage?";
+    const next = selectNextQuestion({
+      branch: "AI_ML",
+      role: "Machine Learning Intern",
+      difficulty: 3,
+      questionHistory: [first],
+      evaluatedConcepts: [],
+      resumeProjects: [],
+      followUp: false,
+    });
+    expect(next).not.toBe(first);
+  });
+
   it("starts from a resume project", async () => {
     const result = await advanceInterview(base("", [], []));
     expect(result.nextQuestion).toContain("Hostel Booking API");

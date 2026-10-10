@@ -30,24 +30,46 @@ describe("fair scoring", () => {
     );
   });
 
-  it("scores only answer signals, not candidate-name or college fields", () => {
-    // Candidate identity and college are not accepted by fairEvaluateAnswer.
-    // Therefore this evaluator cannot alter a score based on those metadata.
-    const answer = "First I would validate the API, then test the database query because correctness matters. For example, I would measure latency and verify the regression.";
-    const results = [
-      { name: "Student A", college: "College North", evaluation: fairEvaluateAnswer({ answer }) },
-      { name: "Student B", college: "College South", evaluation: fairEvaluateAnswer({ answer }) },
-      { name: "Student C", college: "College East", evaluation: fairEvaluateAnswer({ answer }) },
+  it("keeps scores invariant across a 5-by-5 synthetic name and college matrix", () => {
+    const answer =
+      "First I would validate the API, then test the database query because correctness matters. For example, I would measure latency and verify the regression.";
+    const names = [
+      "Aditi Sharma",
+      "Rahul Patnaik",
+      "Fatima Khan",
+      "John Miller",
+      "Maria Santos",
     ];
+    const colleges = [
+      "Utkal Technical College",
+      "Eastern Institute of Technology",
+      "National Engineering Academy",
+      "Coastal Engineering College",
+      "City Institute of Computing",
+    ];
+    const baseline = fairEvaluateAnswer({ answer });
+    const results = names.flatMap((candidateName) =>
+      colleges.map((college) => {
+        // Pass identity metadata as extra input fields to guard against a
+        // future scorer implementation accidentally incorporating them.
+        // The production scorer's declared input intentionally excludes them.
+        const inputWithIdentity = { answer, candidateName, college };
+        return fairEvaluateAnswer(inputWithIdentity);
+      }),
+    );
 
-    expect(results.map(({ evaluation }) => ({
-      qualityScore: evaluation.qualityScore,
-      scoreBreakdown: evaluation.scoreBreakdown,
-    }))).toEqual([
-      { qualityScore: results[0]?.evaluation.qualityScore, scoreBreakdown: results[0]?.evaluation.scoreBreakdown },
-      { qualityScore: results[0]?.evaluation.qualityScore, scoreBreakdown: results[0]?.evaluation.scoreBreakdown },
-      { qualityScore: results[0]?.evaluation.qualityScore, scoreBreakdown: results[0]?.evaluation.scoreBreakdown },
-    ]);
+    expect(results).toHaveLength(25);
+    expect(
+      results.map(({ qualityScore, scoreBreakdown }) => ({
+        qualityScore,
+        scoreBreakdown,
+      })),
+    ).toEqual(
+      Array.from({ length: 25 }, () => ({
+        qualityScore: baseline.qualityScore,
+        scoreBreakdown: baseline.scoreBreakdown,
+      })),
+    );
   });
 
   it("does not match incidental substrings as scoring markers", () => {

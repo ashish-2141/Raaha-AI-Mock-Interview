@@ -12,6 +12,7 @@ describe("coding sandbox policy", () => {
     expect(valueFor("--cpus")).toBe(SANDBOX_POLICY.cpuLimit);
     expect(valueFor("--pids-limit")).toBe(String(SANDBOX_POLICY.pidsLimit));
     expect(valueFor("--user")).toBe("1000:1000");
+    expect(args).toContain("--detach");
     expect(args).toContain("--read-only");
     expect(args).toContain("--cap-drop");
     expect(valueFor("--cap-drop")).toBe("ALL");

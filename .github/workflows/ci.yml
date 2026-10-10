@@ -59,6 +59,8 @@ jobs:
           done
           echo "Docker Hub rate limit persisted after 3 attempts."
           exit 1
+      - name: Pull sandbox runtime image
+        run: docker pull public.ecr.aws/docker/library/node:24-alpine
       - name: Run isolated sandbox runtime integration tests
         env:
           RAAHA_RUN_SANDBOX_INTEGRATION: "1"

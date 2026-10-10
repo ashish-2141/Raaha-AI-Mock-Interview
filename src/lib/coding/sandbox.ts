@@ -119,7 +119,7 @@ async function executeIsolatedCase(source: string, testCase: HiddenCase): Promis
   const workdir = await mkdtemp(path.join(tmpdir(), "raaha-sandbox-"));
   const sourcePath = path.join(workdir, "solution.mjs");
   const runnerPath = path.join(workdir, "runner.mjs");
-  const cidFile = path.join(workdir, "container.cid");
+  const cidFile = path.join(tmpdir(), path.basename(workdir) + ".cid");
   const startedAt = Date.now();
 
   try {
@@ -161,6 +161,7 @@ async function executeIsolatedCase(source: string, testCase: HiddenCase): Promis
   } finally {
     // On timeout this removes any process left after the CLI itself is killed.
     await terminateSandbox(cidFile);
+    await rm(cidFile, { force: true });
     await rm(workdir, { recursive: true, force: true });
   }
 }

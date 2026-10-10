@@ -53,6 +53,10 @@ const BRANCH_OPTIONS = [
   ["AI_ML", "AI / Machine Learning"],
   ["DATA_SCIENCE", "Data Science"],
   ["CYBERSECURITY", "Cybersecurity"],
+  ["CHEMICAL", "Chemical Engineering"],
+  ["METALLURGY", "Metallurgy"],
+  ["MINING", "Mining Engineering"],
+  ["BIOTECH", "Biotechnology"],
   ["OTHER", "Other / not specified"],
 ] as const;
 

@@ -32,8 +32,8 @@ function base(lastAnswer: string, history: string[] = [], concepts: string[] = [
 
 describe("adaptive interview engine", () => {
   it.each([
-    { branch: "CSE", role: "Technical Intern", expected: "versioned REST API" },
-    { branch: "IT", role: "Technical Intern", expected: "versioned REST API" },
+    { branch: "CSE", role: "Technical Intern", expected: "versioned rest api" },
+    { branch: "IT", role: "Technical Intern", expected: "versioned rest api" },
     { branch: "ECE", role: "Technical Intern", expected: "microcontroller" },
     { branch: "EEE", role: "Electrical Engineer", expected: "power quality" },
     { branch: "MECH", role: "Mechanical Engineer", expected: "manufacturing defect" },

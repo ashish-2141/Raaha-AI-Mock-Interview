@@ -144,6 +144,12 @@ async function executeIsolatedCase(source: string, testCase: HiddenCase): Promis
   const cidFile = path.join(tmpdir(), path.basename(workdir) + ".cid");
   const startedAt = Date.now();
   let containerId: string | null = null;
+  let cleanupPerformed = false;
+  const cleanup = async () => {
+    if (cleanupPerformed) return;
+    cleanupPerformed = true;
+    await removeSandbox(cidFile, containerId);
+  };
 
   try {
     await writeFile(sourcePath, source, { encoding: "utf8", mode: 0o444 });
@@ -181,7 +187,6 @@ async function executeIsolatedCase(source: string, testCase: HiddenCase): Promis
     }
 
     if (!exited) {
-      await removeSandbox(cidFile, containerId);
       throw new SandboxExecutionError(
         "Sandbox timed out after " + SANDBOX_POLICY.timeoutMs + " ms; the container was killed and removed.",
         "failed",
@@ -211,7 +216,7 @@ async function executeIsolatedCase(source: string, testCase: HiddenCase): Promis
   } catch (error) {
     const explicit = error instanceof SandboxExecutionError ? error : null;
     const timedOut = explicit?.timedOut === true || isTimeoutError(error);
-    if (timedOut) await removeSandbox(cidFile, containerId);
+    if (timedOut) await cleanup();
 
     const message = explicit?.message ?? (timedOut
       ? "Sandbox timed out; the container was killed and removed."
@@ -226,7 +231,7 @@ async function executeIsolatedCase(source: string, testCase: HiddenCase): Promis
       timedOut,
     );
   } finally {
-    await removeSandbox(cidFile, containerId);
+    await cleanup();
     await rm(cidFile, { force: true });
     await rm(workdir, { recursive: true, force: true });
   }

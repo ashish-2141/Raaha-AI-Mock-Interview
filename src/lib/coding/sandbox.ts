@@ -65,7 +65,7 @@ function buildRunner(input: unknown[]): string {
   ].join("\n");
 }
 
-export function buildDockerArgs(workdir: string, cidFile = path.join(workdir, "container.cid")): string[] {
+export function buildDockerArgs(workdir: string, cidFile = path.join(tmpdir(), path.basename(workdir) + ".cid")): string[] {
   const image = process.env.RAAHA_SANDBOX_IMAGE ?? "public.ecr.aws/docker/library/node:24-alpine";
   return [
     "run",

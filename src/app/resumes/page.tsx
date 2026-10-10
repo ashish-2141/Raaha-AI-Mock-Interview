@@ -2,8 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import type { ResumeProfile } from "@/lib/resume/schema";
-
-const RESUME_CONTEXT_KEY = "raaha.interview.resumeContext";
+import { createInterviewResumeContext, RESUME_INTERVIEW_CONTEXT_KEY } from "@/lib/interview/resume-context";
 
 type ParseResponse = {
   profile?: ResumeProfile;
@@ -51,16 +50,8 @@ export default function ResumesPage() {
     if (!profile) return;
     // Keep only the context needed to personalise questions. Do not copy the
     // candidate's name, CGPA or full resume into browser storage.
-    const resumeContext = {
-      branch: profile.branch,
-      role: role.trim() || "Technical Intern",
-      resumeProjects: profile.projects.map((project) => ({
-        name: project.name,
-        techStack: project.techStack,
-        summary: project.summary,
-      })),
-    };
-    window.sessionStorage.setItem(RESUME_CONTEXT_KEY, JSON.stringify(resumeContext));
+    const resumeContext = createInterviewResumeContext(profile, role);
+    window.sessionStorage.setItem(RESUME_INTERVIEW_CONTEXT_KEY, JSON.stringify(resumeContext));
     window.location.assign("/voice-interview");
   }
 

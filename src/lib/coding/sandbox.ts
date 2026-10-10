@@ -40,9 +40,8 @@ class SandboxExecutionError extends Error {
 }
 
 /**
- * One hidden case is supplied to one short-lived container at a time.
- * The expected value and the remaining cases stay in the host process and are
- * never mounted into the candidate execution environment.
+ * Only the current test input is passed into the candidate container. The
+ * expected result and all remaining hidden cases stay in the host process.
  */
 function buildRunner(input: unknown[]): string {
   return [
@@ -69,7 +68,7 @@ export function buildDockerArgs(workdir: string, cidFile = path.join(tmpdir(), p
   const image = process.env.RAAHA_SANDBOX_IMAGE ?? "public.ecr.aws/docker/library/node:24-alpine";
   return [
     "run",
-    "--rm",
+    "--detach",
     "--cidfile", cidFile,
     "--stop-timeout", "1",
     "--user", "1000:1000",
@@ -94,16 +93,34 @@ function isTimeoutError(error: unknown): boolean {
   return value.killed === true || value.signal === "SIGTERM" || value.code === "ETIMEDOUT";
 }
 
-async function terminateSandbox(cidFile: string): Promise<void> {
+async function readContainerId(cidFile: string, knownId?: string | null): Promise<string | null> {
+  if (knownId) return knownId;
   try {
-    const containerId = (await readFile(cidFile, "utf8")).trim();
-    if (!containerId) return;
+    const id = (await readFile(cidFile, "utf8")).trim();
+    return id || null;
+  } catch {
+    return null;
+  }
+}
+
+async function removeSandbox(cidFile: string, knownId?: string | null): Promise<void> {
+  const containerId = await readContainerId(cidFile, knownId);
+  if (!containerId) return;
+  // Killing and removing are separate best-effort operations: kill can fail if
+  // the program already exited, but rm --force must still be attempted.
+  try {
     await execFileAsync("docker", ["kill", "--signal=KILL", containerId], {
       timeout: 2_000,
       maxBuffer: 8 * 1024,
     });
+  } catch {}
+  try {
+    await execFileAsync("docker", ["rm", "--force", containerId], {
+      timeout: 2_000,
+      maxBuffer: 8 * 1024,
+    });
   } catch {
-    // It may already have exited or the Docker daemon may be unavailable.
+    // Container may already have been removed.
   }
 }
 
@@ -115,26 +132,72 @@ function normalizeOutput(value: unknown): unknown {
   return Array.isArray(value) ? [...value].sort((a, b) => Number(a) - Number(b)) : value;
 }
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function executeIsolatedCase(source: string, testCase: HiddenCase): Promise<CaseExecution> {
   const workdir = await mkdtemp(path.join(tmpdir(), "raaha-sandbox-"));
   const sourcePath = path.join(workdir, "solution.mjs");
   const runnerPath = path.join(workdir, "runner.mjs");
+  // Keep the cid file outside the only mount visible to submitted code.
   const cidFile = path.join(tmpdir(), path.basename(workdir) + ".cid");
   const startedAt = Date.now();
+  let containerId: string | null = null;
 
   try {
     await writeFile(sourcePath, source, { encoding: "utf8", mode: 0o444 });
     await writeFile(runnerPath, buildRunner(testCase.input), { encoding: "utf8", mode: 0o444 });
-    // mkdtemp creates a private 0700 directory; allow only traversal/read access
-    // for the non-root runtime user while the bind mount itself remains read-only.
+    // mkdtemp creates a private 0700 directory; allow traversal/read for the
+    // non-root runtime user while the bind mount itself remains read-only.
     await chmod(workdir, 0o755);
 
-    const { stdout } = await execFileAsync("docker", buildDockerArgs(workdir, cidFile), {
-      timeout: SANDBOX_POLICY.timeoutMs + 1_000,
-      maxBuffer: 64 * 1024,
+    const launched = await execFileAsync("docker", buildDockerArgs(workdir, cidFile), {
+      timeout: 10_000,
+      maxBuffer: 8 * 1024,
     });
+    containerId = launched.stdout.trim() || await readContainerId(cidFile);
+    if (!containerId) {
+      throw new SandboxExecutionError("Docker did not return a container ID.", "unavailable");
+    }
 
-    const parsed = JSON.parse(stdout.trim()) as { ok: boolean; result?: unknown; durationMs?: number };
+    const deadline = Date.now() + SANDBOX_POLICY.timeoutMs;
+    let exited = false;
+    while (Date.now() < deadline) {
+      const status = await execFileAsync("docker", [
+        "inspect",
+        "--format={{.State.Running}}",
+        containerId,
+      ], { timeout: 1_500, maxBuffer: 8 * 1024 });
+      const running = status.stdout.trim();
+      if (running === "false") {
+        exited = true;
+        break;
+      }
+      if (running !== "true") {
+        throw new SandboxExecutionError("Docker returned an unknown container state.", "failed");
+      }
+      await wait(100);
+    }
+
+    if (!exited) {
+      await removeSandbox(cidFile, containerId);
+      throw new SandboxExecutionError(
+        "Sandbox timed out after " + SANDBOX_POLICY.timeoutMs + " ms; the container was killed and removed.",
+        "failed",
+        true,
+      );
+    }
+
+    const [logs, exit] = await Promise.all([
+      execFileAsync("docker", ["logs", containerId], { timeout: 2_000, maxBuffer: 64 * 1024 }),
+      execFileAsync("docker", ["inspect", "--format={{.State.ExitCode}}", containerId], { timeout: 1_500, maxBuffer: 8 * 1024 }),
+    ]);
+    if (exit.stdout.trim() !== "0") {
+      throw new Error(normalizeError(logs.stderr || "Sandbox runner exited with a non-zero status."));
+    }
+
+    const parsed = JSON.parse(logs.stdout.trim()) as { ok: boolean; result?: unknown; durationMs?: number };
     if (!parsed.ok || !("result" in parsed)) {
       throw new Error("Sandbox runner did not return a valid result.");
     }
@@ -143,24 +206,24 @@ async function executeIsolatedCase(source: string, testCase: HiddenCase): Promis
       durationMs: Math.max(0, parsed.durationMs ?? Date.now() - startedAt),
     };
   } catch (error) {
-    const timedOut = isTimeoutError(error);
-    if (timedOut) await terminateSandbox(cidFile);
+    const explicit = error instanceof SandboxExecutionError ? error : null;
+    const timedOut = explicit?.timedOut === true || isTimeoutError(error);
+    if (timedOut) await removeSandbox(cidFile, containerId);
 
-    const message = timedOut
-      ? "Sandbox timed out after " + (SANDBOX_POLICY.timeoutMs + 1_000) + " ms; the container was killed."
-      : normalizeError(error instanceof Error ? error.message : "Sandbox execution failed.");
-    const unavailable = !timedOut && /ENOENT|Cannot connect to the Docker daemon|Is the docker daemon running|pull access denied|manifest unknown/i.test(message);
+    const message = explicit?.message ?? (timedOut
+      ? "Sandbox timed out; the container was killed and removed."
+      : normalizeError(error instanceof Error ? error.message : "Sandbox execution failed."));
+    const unavailable = explicit?.status === "unavailable" || (
+      !timedOut && /ENOENT|Cannot connect to the Docker daemon|Is the docker daemon running|pull access denied|manifest unknown/i.test(message)
+    );
 
     throw new SandboxExecutionError(
-      unavailable
-        ? "Docker sandbox unavailable. Runtime acceptance requires Docker and the configured sandbox image."
-        : message,
+      unavailable ? message : message,
       unavailable ? "unavailable" : "failed",
       timedOut,
     );
   } finally {
-    // On timeout this removes any process left after the CLI itself is killed.
-    await terminateSandbox(cidFile);
+    await removeSandbox(cidFile, containerId);
     await rm(cidFile, { force: true });
     await rm(workdir, { recursive: true, force: true });
   }

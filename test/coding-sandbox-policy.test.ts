@@ -4,7 +4,7 @@ import { SANDBOX_POLICY, validateCandidateSource } from "../src/lib/coding/polic
 
 describe("coding sandbox policy", () => {
   it("configures non-root, network-disabled, resource-limited execution", () => {
-    const args = buildDockerArgs("/tmp/raaha-test");
+    const args = buildDockerArgs("/tmp/raaha-test", "/tmp/raaha-test.cid");
     const valueFor = (flag: string) => args[args.indexOf(flag) + 1];
 
     expect(valueFor("--network")).toBe("none");
@@ -17,7 +17,8 @@ describe("coding sandbox policy", () => {
     expect(valueFor("--cap-drop")).toBe("ALL");
     expect(valueFor("--security-opt")).toBe("no-new-privileges");
     expect(valueFor("--stop-timeout")).toBe("1");
-    expect(valueFor("--cidfile")).toContain("container.cid");
+    expect(valueFor("--cidfile")).toBe("/tmp/raaha-test.cid");
+    expect(valueFor("--mount")).not.toContain("raaha-test.cid");
     expect(valueFor("--mount")).toContain("dst=/workspace,readonly");
   });
 
